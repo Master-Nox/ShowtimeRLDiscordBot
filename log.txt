@@ -1,0 +1,9 @@
+2022-05-30 09:49:07.462708
+'str' object is not callable
+
+2022-05-30 09:50:12.320404
+'str' object is not callable
+
+2022-05-30 11:07:24.524657
+has_notif_already_sent() missing 1 required positional argument: 'user'
+
