@@ -3,6 +3,7 @@ from cProfile import label
 from email import message
 from errno import EPERM
 import json
+from msilib.schema import TextStyle
 from socket import timeout
 from tkinter import Button
 import requests
@@ -54,6 +55,8 @@ headers = {
     'Authorization': 'Bearer ' + keys['access_token']
 }
 
+GUILD_ID = guild= discord.Object(id= 980108559226380318)
+
 # Twitter auth
 twitclient = tweepy.Client(bearer_token=os.getenv('twit_bearer_token'),
                        consumer_key=os.getenv('twit_consumer_key'),
@@ -77,7 +80,6 @@ def checktwitter(twitter_name, self=None):
     #message = ""
     mostrecenttweet = tweets.data[0].id
     return mostrecenttweet
-
 
 # Returns true if online, false if not.
 def checkuser(streamer_name, self=None):
@@ -224,6 +226,30 @@ async def on_ready():
     # Start your loop.
     live_notifs_loop.start()
 
+class ModMailModal(ui.Modal, title='ModMail'):
+    Title = discord.ui.TextInput(label='Title', required=True, style=discord.TextStyle.short)
+    Mail = discord.ui.TextInput(label= "Message", default= "Write what you want sent here.", required=True, style=discord.TextStyle.paragraph)
+    Notes = discord.ui.TextInput(label= "Additional Notes", default="\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b", style=discord.TextStyle.short, required=False)
+    # Notes fix is definitely a band-aid. Can't find a way to let Notes just be empty without these dumb empty space characters
+    async def on_submit(self, interaction):
+        channel = client.get_channel(int(get_channel(3)))
+        author = interaction.user
+        embed = discord.Embed(
+            color=discord.Color.random(),
+            title=f"Mod Mail from {author}",)
+        try:
+            embed.set_thumbnail(url=f"{author.avatar.url}")
+        except:
+            embed.set_thumbnail(url='https://styles.redditmedia.com/t5_2qhk5/styles/communityIcon_v58lvj23zo551.jpg')
+            print(f'{author} did not have an avatar url.')
+        embed.add_field(name="**Title**", value=f"{self.Title}", inline=False)
+        embed.add_field(name=f"**Mail Content**", value=f"{self.Mail}", inline=False)
+        embed.add_field(name=f"**Additional Notes**", value=f"{self.Notes}", inline=False)
+        embed.timestamp = datetime.now()
+        await interaction.response.send_message("Your Mod Mail has been recorded and sent as follows.",embed=embed)
+        await channel.send(embed=embed)
+
+# This is caled when the bot is DM'd. It displays buttons for the user.
 class DM_Help(discord.ui.View):
     def __init__(self):
         super().__init__()
@@ -241,61 +267,32 @@ class DM_Help(discord.ui.View):
     # This one is similar to the confirmation button except sets the inner value to `False`
     @discord.ui.button(label='💬', style=discord.ButtonStyle.blurple)
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message('We hear you! The next message you send will be forwarded straight to our moderation team!')
+        x = ModMailModal()
+        await interaction.response.send_modal(x)
+        await TeamModal.wait(x)
         self.value = "💬"
         self.stop()
 
-async def DM_History_Check(message):
-    async for message in message.channel.history(limit=3):
-        if f'We hear you! The next message you send will be forwarded straight to our moderation team!' in message.content:
-            print("A")
-            return message
-        else:
-            print("B")
-            return False
-
 # This bit of code has the bot respond to DMs automatically, should be turned into a helpful message eventually.
 @client.event
-async def on_message(message): # Find some way to get it to stop responding after you send a mod mail.
+async def on_message(message):
     channel = client.get_channel(int(get_channel(3)))
-    check = await DM_History_Check(message)
-    if check:
-        print("plz")
-        return
     if message.author == client.user:
         return 
     if not message.guild:
         try:
-            #button1 = Button(label="❓", style=discord.ButtonStyle.red)
-            #button2 = Button(label="💬", style=discord.ButtonStyle.green)
             view= DM_Help()
 
-            await message.channel.send("Hi, how can I help you?\n❓ : Command list\n💬 : Mod Mail\n ", view=view)
+            await message.channel.send("Hi, how can I help you?\n❓ : Command list\n💬 : Mod Mail\n", view=view)
             await view.wait()
-
-            if view.value is None:
-                await channel.send("Timed out..")
-            elif view.value == "❓":
-                await message.channel.send("This will become helpful info!")
-            elif view.value == "💬":
-                response = await client.wait_for("message")
-                try:
-                    embed = discord.Embed(
-                    color=discord.Color.random(),
-                    title=f"{response.author}",
-                    description=f"{response.author.mention}")
-                    embed.add_field(name="Message Content", value=f"{response.content}")
-                    embed.timestamp = datetime.now()
-                    await channel.send(embed=embed)
-                except:
-                    print("error")
+            # If you want to add something to this then check the DM_Help class.
         except discord.errors.Forbidden:
             pass
     else:
         pass
 
 # This command lets you add a twitter account to the notification list.
-@tree.command(name="twitter_add", description=f'Adds a Twitter to the live notifs.', guild= discord.Object(id= 980108559226380318))
+@tree.command(name="twitter_add", description=f'Adds a Twitter to the live notifs.', guild= GUILD_ID)
 async def self(interaction: discord.Interaction, twitter_name: str):
     id = int(get_channel(0))
     channel = client.get_channel(id)
@@ -312,7 +309,7 @@ async def self(interaction: discord.Interaction, twitter_name: str):
     file.close()
 
 # This command lets you remove a twitter account from the notification list.
-@tree.command(name="twitter_delete", description=f'Removes a Twitter from the live notifs.', guild= discord.Object(id= 980108559226380318))
+@tree.command(name="twitter_delete", description=f'Removes a Twitter from the live notifs.', guild= GUILD_ID)
 async def self(interaction: discord.Interaction, twitter_name: str):
     channel = client.get_channel(int(get_channel(1)))
     channel2 = client.get_channel(int(get_channel(0)))
@@ -342,7 +339,7 @@ async def self(interaction: discord.Interaction, twitter_name: str):
     file.close()
 
 # This command lists twitter accounts currently within the notification list.
-@tree.command(name="twitter_list", description=f'List of twitters currently being tracked.', guild= discord.Object(id= 980108559226380318))
+@tree.command(name="twitter_list", description=f'List of twitters currently being tracked.', guild= GUILD_ID)
 async def self(interaction: discord.Interaction):
      with open('tweeters.txt', 'r') as file:
          tweeters = file.read()
@@ -350,7 +347,7 @@ async def self(interaction: discord.Interaction):
          file.close()
 
 # This command lets you add a streamer to the notification list.
-@tree.command(name="stream_add", description=f'Adds a Twitch to the live notifs.', guild= discord.Object(id= 980108559226380318))
+@tree.command(name="stream_add", description=f'Adds a Twitch to the live notifs.', guild= GUILD_ID)
 async def self(interaction: discord.Interaction, twitch_name: str):
     id = int(get_channel(0))
     channel = client.get_channel(id)
@@ -367,7 +364,7 @@ async def self(interaction: discord.Interaction, twitch_name: str):
     file.close()
 
 # This command lets you remove a streamer from the notification list.
-@tree.command(name="stream_delete", description=f'Removes a Twitch from the live notifs.', guild= discord.Object(id= 980108559226380318))
+@tree.command(name="stream_delete", description=f'Removes a Twitch from the live notifs.', guild= GUILD_ID)
 async def self(interaction: discord.Interaction, twitch_name: str):
     channel = client.get_channel(int(get_channel(2)))
     channel2 = client.get_channel(int(get_channel(0)))
@@ -397,7 +394,7 @@ async def self(interaction: discord.Interaction, twitch_name: str):
     file.close()
 
 # This command lists streamers currently within the notification list.
-@tree.command(name="stream_list", description=f'List of streams currently being tracked.', guild= discord.Object(id= 980108559226380318))
+@tree.command(name="stream_list", description=f'List of streams currently being tracked.', guild= GUILD_ID)
 async def self(interaction: discord.Interaction):
      with open('streams.txt', 'r') as file:
          streams = file.read()
@@ -406,7 +403,7 @@ async def self(interaction: discord.Interaction):
 
 # This command lets you change the channel in which the bot outputs its logs.
 # I want to let users type in the channel with the # instead of copying the id. Shouldn't be too hard but work at it.
-@tree.command(name="set_log_channel", description=f"Sets the channel to be used for the bot's logs." , guild= discord.Object(id= 980108559226380318))
+@tree.command(name="set_log_channel", description=f"Sets the channel to be used for the bot's logs." , guild= GUILD_ID)
 async def self(interaction: discord.Interaction, logchannel: str):
     with open('channels.txt', 'r') as file:
         channels = file.read()
@@ -423,8 +420,25 @@ async def self(interaction: discord.Interaction, logchannel: str):
         await interaction.response.send_message(f'Log Channel successfully changed.')
         await botchannel.send(f"{interaction.user.mention} changed the log channel to <#{newid}>")
 
+@tree.command(name="set_mod_mail_channel", description=f"Sets the channel to be used for the bot's mod mail." , guild= GUILD_ID)
+async def self(interaction: discord.Interaction, mod_mail_channel: str):
+    with open('channels.txt', 'r') as file:
+        channels = file.read()
+        channel_list = channels.split(',')
+        channel_list[3] = mod_mail_channel
+        newchannels = ",".join(channel_list)
+        file.close()
+    with open('channels.txt', "w") as file:
+        file.writelines(newchannels)
+        file.close()
+        botid = int(get_channel(0))
+        botchannel = client.get_channel(botid)
+        newid = int(get_channel(3))
+        await interaction.response.send_message(f'Mod Mail Channel successfully changed.')
+        await botchannel.send(f"{interaction.user.mention} changed the Mod Mail channel to <#{newid}>")
+
 # Sets where the bot sends tweets to.
-@tree.command(name="set_tweet_channel", description=f"Sets the channel to be used for tweets." , guild= discord.Object(id= 980108559226380318))
+@tree.command(name="set_tweet_channel", description=f"Sets the channel to be used for tweets." , guild= GUILD_ID)
 async def self(interaction: discord.Interaction, tweet_channel: str):
     with open('channels.txt', 'r') as file:
         channels = file.read()
@@ -442,7 +456,7 @@ async def self(interaction: discord.Interaction, tweet_channel: str):
         await botchannel.send(f"{interaction.user.mention} changed the Tweet channel to <#{newid}>")
 
 # Sets where the bot sends livestreams to.
-@tree.command(name="set_stream_channel", description=f"Sets the channel to be used for streams." , guild= discord.Object(id= 980108559226380318))
+@tree.command(name="set_stream_channel", description=f"Sets the channel to be used for streams." , guild= GUILD_ID)
 async def self(interaction: discord.Interaction, stream_channel: str):
     with open('channels.txt', 'r') as file:
         channels = file.read()
@@ -459,13 +473,115 @@ async def self(interaction: discord.Interaction, stream_channel: str):
         await interaction.response.send_message(f'Stream Channel successfully changed.')
         await botchannel.send(f"{interaction.user.mention} changed the Stream channel to <#{newid}>")
 
-# Lists channels the bot is outputting too.
-@tree.command(name="mod_channel_list", description=f"Display all bot configured channels" , guild= discord.Object(id= 980108559226380318))
+
+async def change_channel(self, chosen_function, chosen_channel):
+        text_channel_name_list = []
+        text_channel_id_list = []
+        for guild in client.guilds:
+            for channel in guild.channels:
+                if str(channel.type) == 'text':
+                    text_channel_name_list.append(channel.name)
+                    text_channel_id_list.append(channel.id)
+        if chosen_function == "Bot Log":
+            chosen_function = 0
+        elif chosen_function == "Tweet Channel":
+            chosen_function = 1
+        elif chosen_function == "Stream Channel":
+            chosen_function = 2
+        elif chosen_function == "Mod Mail":
+            chosen_function = 3
+        print(chosen_function)
+        with open('channels.txt', 'r') as file:
+            channels = file.read()
+            channel_list = channels.split(',')
+            channel_list[chosen_function] = text_channel_id_list[int(self.values[0])]
+            newchannels = ",".join(channel_list)
+            file.close()
+        with open('channels.txt', "w") as file:
+            file.writelines(newchannels)
+            file.close()
+
+class ChannelDropdown(discord.ui.Select):
+    text_channel_name_list = []
+    text_channel_id_list = []
+    for guild in client.guilds:
+        for channel in guild.channels:
+            if str(channel.type) == 'text':
+                text_channel_name_list.append(channel.name)
+                text_channel_id_list.append(channel.id)
+    def __init__(self):
+        options = [
+            discord.SelectOption(label=key)
+            for key in self.text_channel_name_list
+        ]
+        super().__init__(placeholder='Choose a channel..', min_values=1, max_values=1, options=options)
+        
+    async def callback(self, interaction: discord.Interaction):
+        # Use the interaction object to send a response message containing
+        # the user's favourite colour or choice. The self object refers to the
+        # Select object, and the values attribute gets a list of the user's
+        # selected options. We only want the first one.
+        await interaction.response.send_message(f"You chose **{self.values[0]}**.\nUpdating the bot.")
+        
+class FunctionDropdown(discord.ui.Select):
+    def __init__(self):
+        # Set the options that will be presented inside the dropdown
+        options = [
+            discord.SelectOption(label='Bot Log', emoji='⬛'),
+            discord.SelectOption(label='Tweet Channel', emoji='🟦'),
+            discord.SelectOption(label='Stream Channel', emoji='🟪'),
+            discord.SelectOption(label='Mod Mail', emoji='🟥'),
+        ]
+        # The placeholder is what will be shown when no option is chosen
+        # The min and max values indicate we can only pick one of the three options
+        # The options parameter defines the dropdown options. We defined this above
+        super().__init__(placeholder='Choose a function..', min_values=1, max_values=1, options=options)
+
+    async def callback(self, interaction: discord.Interaction):
+        # Use the interaction object to send a response message containing
+        # the user's favourite colour or choice. The self object refers to the
+        # Select object, and the values attribute gets a list of the user's
+        # selected options. We only want the first one.
+        view = ChannelDropdownView()
+        chosen_function = self.values[0]
+        await interaction.response.send_message(f"You chose the **{self.values[0]}** function.\nNow choose which channel you'd like to attach it to.")
+
+# Creates the view for the Function Dropdown.
+class FunctionDropdownView(discord.ui.View):
+    def __init__(self):
+        super().__init__()
+
+        # Adds the dropdown to our view object.
+        self.add_item(FunctionDropdown())
+
+# Creates the view for the Channel Dropdown.
+class ChannelDropdownView(discord.ui.View):
+    def __init__(self):
+        super().__init__()
+
+        # Adds the dropdown to our view object.
+        self.add_item(ChannelDropdown())
+
+# Replaces the old set commands and combines them into 1 elegant solution.
+@tree.command(name="setchannel", description="Lets you set various channels.", guild= GUILD_ID)
 async def self(interaction: discord.Interaction):
-    await interaction.response.send_message(f"The current channels are:\nBot Log: <#{int(get_channel(0))}>\nTweet Channel: <#{int(get_channel(1))}>\nStream Channel: <#{int(get_channel(2))}>")
+    view = FunctionDropdownView()
+    view2 = ChannelDropdownView()
+    await interaction.response.send_message('Choose a function to change.', view=view)
+    await interaction.followup.send(view=view2)
+    view.children[0].view
+    view2.children[0]
+    print(view)
+    print(view2)
+    #await change_channel(self=None, chosen_function=chosen_function, chosen_channel=chosen_channel)
+    
+# Lists channels the bot is outputting too.
+@tree.command(name="mod_channel_list", description=f"Display all bot configured channels", guild= GUILD_ID)
+async def self(interaction: discord.Interaction):
+    await interaction.response.send_message(f"The current channels are:\nBot Log: <#{int(get_channel(0))}>\nTweet Channel: <#{int(get_channel(1))}>\nStream Channel: <#{int(get_channel(2))}>\nMod-Mail Channel: <#{int(get_channel(3))}>")
 
 # Future help command!
-@tree.command(name="help", description=f'Sends the User a DM with command information.', guild= discord.Object(id= 980108559226380318))
+@tree.command(name="help", description=f'Sends the User a DM with command information.', guild= GUILD_ID)
 async def self(interaction: discord.Interaction):
     user = interaction.user
     print(f'Sent a help message to {user}')
@@ -473,21 +589,16 @@ async def self(interaction: discord.Interaction):
     await user.send('lol trolled\nhttps://tenor.com/view/rickroll-roll-rick-never-gonna-give-you-up-never-gonna-gif-22954713')
 
 # Pong!
-@tree.command(name="ping", description=f'Reports latency.', guild= discord.Object(id= 980108559226380318))
+@tree.command(name="ping", description=f'Reports latency.', guild= GUILD_ID)
 async def self(interaction: discord.Interaction):
     await interaction.response.send_message(f'Pong! {round(client.latency * 1000)}ms')
 
 # Friendly bot :)
-@tree.command(name="hello", description=f'Has the bot say Hi', guild= discord.Object(id= 980108559226380318))
+@tree.command(name="hello", description=f'Has the bot say Hi', guild= GUILD_ID)
 async def self(interaction: discord.Interaction):
     author = interaction.user
     await interaction.response.send_message(f'Hello {author.mention}!')
 
-
-
-
-#@tree.command(name="join", description=f'Testing purposes', guild= discord.Object(id= 980108559226380318))
-#async def self(interaction: discord.Interaction):
 @client.event
 async def on_member_join(member):
     #currentchannel = client.get_channel(980108559918456917)
@@ -557,7 +668,6 @@ class TeamModal(ui.Modal, title='Team Information'):
     
     async def on_submit(self, interaction):
         author = interaction.user
-        #await interaction.response.send_message(f'Information for {self.TeamName} has been recorded!\n{self.Player1}, {self.Player2}, {self.Player3}\n{self.RankInfo}\n{self.Subs}', ephemeral=True)
         embed = discord.Embed(
             color=discord.Color.random(),
             title=f"Match Request from {author}",
@@ -574,8 +684,7 @@ class TeamModal(ui.Modal, title='Team Information'):
         embed.timestamp = datetime.now()
         await interaction.response.send_message("Your information has been recorded and sent as follows.",embed=embed, ephemeral=True)
 
-
-@tree.command(name="showmatch_test", description=f'WIP', guild= discord.Object(id= 980108559226380318))
+@tree.command(name="showmatch_test", description=f'WIP', guild= GUILD_ID)
 async def self(interaction: discord.Interaction, usertag: str):
     author = interaction.user
     user = usertag.removeprefix('<@!')
@@ -609,8 +718,6 @@ async def self(interaction: discord.Interaction, usertag: str):
     embed.add_field(name="**Average Rank**", value=f"{Team1Rank}", inline=False)
     embed.timestamp = datetime.now()
     await user.send(embed=embed)
-    #await user.send(f'You have received a match offer from {author}!\nTeam Name: {TeamName1}\n{TeamName1} Players: {Team1Players}\n{TeamName1} Subs: {Team1Subs}\n{TeamName1} Rank: {Team1Rank}.')
-    
     
 # def getJson(username):
 #   key = '8f8782a3-53e3-4174-bdf6-9d4329ce0f72' # Your key goes here, this is mine
@@ -641,26 +748,5 @@ async def self(interaction: discord.Interaction, usertag: str):
 #                    'rumble': 'Rumble', 'dropshot': 'Dropshot', 'snowday': 'Snowday', 'tournament': 'Tournament Matches',
 #                    'unranked': 'Un-Ranked'}
 #     return jsonResponse[translation[mode.lower()]]
-
-#
-
-
-# @client.event
-# async def on_member_join():
-#     member = client.get_user
-#     print(member)
-#     channel = client.get_channel(980223380814983188)
-#     await member.send('Doot!')
-#     await channel.send(f'{member} has joined.')
-#     await client.process_commands(member)
-# @commands.Cog.listener()
-# async def on_member_join(self, member):
-#     role = discord.utils.get(member.guild.roles, name="Unverified")
-#     await member.add_roles(role)
-#
-#     channel = discord.utils.get(member.guild.channels, name="general")
-#     embed = discord.Embed(title=f"Welcome {member}", color=discord.Colour.blue())
-#     await channel.send(embed=embed)
-
 
 client.run(my_secret)
