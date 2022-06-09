@@ -1,6 +1,10 @@
+from __future__ import print_function
+from cProfile import label
 from email import message
 from errno import EPERM
 import json
+from socket import timeout
+from tkinter import Button
 import requests
 from requests_oauthlib import OAuth1Session
 import os
@@ -50,6 +54,7 @@ headers = {
     'Authorization': 'Bearer ' + keys['access_token']
 }
 
+# Twitter auth
 twitclient = tweepy.Client(bearer_token=os.getenv('twit_bearer_token'),
                        consumer_key=os.getenv('twit_consumer_key'),
                        consumer_secret=os.getenv('twit_consumer_secret'),
@@ -63,6 +68,7 @@ def log_and_print_exception(e):
     logging_file.close()
     print(f"Exception logged. Error:\n{e}")
 
+# Gets a twitter account's latest tweet.
 def checktwitter(twitter_name, self=None):
     id = (int(get_channel(1)))
     #channel = client.get_channel(id)
@@ -104,7 +110,8 @@ async def has_notif_already_sent(channel, twitch_name):
                 return message
     else:
         return False
-    
+
+# Checks if a tweet has already been sent
 async def has_tweet_already_sent(channel, tweet_id):
     async for message in channel.history(limit=200):
         with open('streams.txt', 'r') as file:
@@ -116,7 +123,7 @@ async def has_tweet_already_sent(channel, tweet_id):
     else:
         return False
 
-# 0=botlog, 1=tweets, 2=streams
+# 0=botlog, 1=tweets, 2=streams, 3=modmail
 def get_channel(id):
     file = open('channels.txt', "r")
     channels = file.read()
@@ -132,6 +139,7 @@ def get_channel(id):
     file.close()
     return request
 
+# Contains the live event loop.
 @client.event
 async def on_ready():
     await discord.Client.wait_until_ready(client)
@@ -216,35 +224,77 @@ async def on_ready():
     # Start your loop.
     live_notifs_loop.start()
 
+class DM_Help(discord.ui.View):
+    def __init__(self):
+        super().__init__()
+        self.value = None
+
+    # When the confirm button is pressed, set the inner value to `True` and
+    # stop the View from listening to more input.
+    # We also send the user an ephemeral message that we're confirming their choice.
+    @discord.ui.button(label='❓', style=discord.ButtonStyle.gray)
+    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("This will become helpful info!")
+        self.value = "❓"
+        self.stop()
+
+    # This one is similar to the confirmation button except sets the inner value to `False`
+    @discord.ui.button(label='💬', style=discord.ButtonStyle.blurple)
+    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message('We hear you! The next message you send will be forwarded straight to our moderation team!')
+        self.value = "💬"
+        self.stop()
+
+async def DM_History_Check(message):
+    async for message in message.channel.history(limit=3):
+        if f'We hear you! The next message you send will be forwarded straight to our moderation team!' in message.content:
+            print("A")
+            return message
+        else:
+            print("B")
+            return False
+
 # This bit of code has the bot respond to DMs automatically, should be turned into a helpful message eventually.
 @client.event
-async def on_message(message):
-    if message.author == client.user:
+async def on_message(message): # Find some way to get it to stop responding after you send a mod mail.
+    channel = client.get_channel(int(get_channel(3)))
+    check = await DM_History_Check(message)
+    if check:
+        print("plz")
         return
+    if message.author == client.user:
+        return 
     if not message.guild:
         try:
-            await message.channel.send("This is a DM.")
+            #button1 = Button(label="❓", style=discord.ButtonStyle.red)
+            #button2 = Button(label="💬", style=discord.ButtonStyle.green)
+            view= DM_Help()
+
+            await message.channel.send("Hi, how can I help you?\n❓ : Command list\n💬 : Mod Mail\n ", view=view)
+            await view.wait()
+
+            if view.value is None:
+                await channel.send("Timed out..")
+            elif view.value == "❓":
+                await message.channel.send("This will become helpful info!")
+            elif view.value == "💬":
+                response = await client.wait_for("message")
+                try:
+                    embed = discord.Embed(
+                    color=discord.Color.random(),
+                    title=f"{response.author}",
+                    description=f"{response.author.mention}")
+                    embed.add_field(name="Message Content", value=f"{response.content}")
+                    embed.timestamp = datetime.now()
+                    await channel.send(embed=embed)
+                except:
+                    print("error")
         except discord.errors.Forbidden:
             pass
     else:
         pass
 
-@tree.command(name="twittest", description=f"Test for twitter api.", guild= discord.Object(id= 980108559226380318))
-async def self(interaction: discord.Interaction, twitter_handle: str):
-    id = (int(get_channel(1)))
-    channel = client.get_channel(id)
-    user = twitclient.get_user(username=twitter_handle) # Takes in plain text uername (id) and turns it into user information.
-    tweets = twitclient.get_users_tweets(user.data.id) # Takes the user information and turns it into a user id to be used for get_users_tweets. Then grabs the 10 latest tweets.
-    message = ""
-    # for tweet in tweets.data: # Cycles through all 10 tweets
-    #     print('https://twitter.com/twitter/statuses/'+str(tweet.id)) # Prints URL to the tweet
-    #     message = message + 'https://twitter.com/twitter/statuses/'+str(tweet.id)+'\n'
-    mostrecenttweet = tweets.data[0].id
-    message = 'https://vxtwitter.com/twitter/statuses/'+str(mostrecenttweet)
-    await interaction.response.send_message(f"Tweet sent to <#{id}>", ephemeral=True)
-    await channel.send(message)
-
-# This command lets you add a streamer to the notification list.
+# This command lets you add a twitter account to the notification list.
 @tree.command(name="twitter_add", description=f'Adds a Twitter to the live notifs.', guild= discord.Object(id= 980108559226380318))
 async def self(interaction: discord.Interaction, twitter_name: str):
     id = int(get_channel(0))
@@ -261,7 +311,7 @@ async def self(interaction: discord.Interaction, twitter_name: str):
         print(f"Added {twitter_name} to the notifications list.")
     file.close()
 
-# This command lets you remove a streamer from the notification list.
+# This command lets you remove a twitter account from the notification list.
 @tree.command(name="twitter_delete", description=f'Removes a Twitter from the live notifs.', guild= discord.Object(id= 980108559226380318))
 async def self(interaction: discord.Interaction, twitter_name: str):
     channel = client.get_channel(int(get_channel(1)))
@@ -291,7 +341,7 @@ async def self(interaction: discord.Interaction, twitter_name: str):
         await interaction.response.send_message(f"Error Occurred.")
     file.close()
 
-# This command lists streamers currently within the notification list.
+# This command lists twitter accounts currently within the notification list.
 @tree.command(name="twitter_list", description=f'List of twitters currently being tracked.', guild= discord.Object(id= 980108559226380318))
 async def self(interaction: discord.Interaction):
      with open('tweeters.txt', 'r') as file:
@@ -373,6 +423,7 @@ async def self(interaction: discord.Interaction, logchannel: str):
         await interaction.response.send_message(f'Log Channel successfully changed.')
         await botchannel.send(f"{interaction.user.mention} changed the log channel to <#{newid}>")
 
+# Sets where the bot sends tweets to.
 @tree.command(name="set_tweet_channel", description=f"Sets the channel to be used for tweets." , guild= discord.Object(id= 980108559226380318))
 async def self(interaction: discord.Interaction, tweet_channel: str):
     with open('channels.txt', 'r') as file:
@@ -390,6 +441,7 @@ async def self(interaction: discord.Interaction, tweet_channel: str):
         await interaction.response.send_message(f'Tweet Channel successfully changed.')
         await botchannel.send(f"{interaction.user.mention} changed the Tweet channel to <#{newid}>")
 
+# Sets where the bot sends livestreams to.
 @tree.command(name="set_stream_channel", description=f"Sets the channel to be used for streams." , guild= discord.Object(id= 980108559226380318))
 async def self(interaction: discord.Interaction, stream_channel: str):
     with open('channels.txt', 'r') as file:
@@ -407,9 +459,11 @@ async def self(interaction: discord.Interaction, stream_channel: str):
         await interaction.response.send_message(f'Stream Channel successfully changed.')
         await botchannel.send(f"{interaction.user.mention} changed the Stream channel to <#{newid}>")
 
+# Lists channels the bot is outputting too.
 @tree.command(name="mod_channel_list", description=f"Display all bot configured channels" , guild= discord.Object(id= 980108559226380318))
 async def self(interaction: discord.Interaction):
     await interaction.response.send_message(f"The current channels are:\nBot Log: <#{int(get_channel(0))}>\nTweet Channel: <#{int(get_channel(1))}>\nStream Channel: <#{int(get_channel(2))}>")
+
 # Future help command!
 @tree.command(name="help", description=f'Sends the User a DM with command information.', guild= discord.Object(id= 980108559226380318))
 async def self(interaction: discord.Interaction):
@@ -497,7 +551,7 @@ class TeamModal(ui.Modal, title='Team Information'):
     #Subs = discord.ui.Select(options=[discord.SelectOption(label='Yes Subs'), discord.SelectOption(label='No Subs')])
     RankInfo = discord.ui.TextInput(label="Average Team Rank", default="0", required=True)
 
-    with open(f'c:/Users/FreeW/PycharmProjects/ShowtimeRLDiscordBot/discord.py/MatchInfo/{TeamName} Match Info.txt', 'w') as file:
+    with open(f'./{TeamName} Match Info.txt', 'w') as file:
         file.write(f'{TeamName}\n{Players}\n{Subs}\n{RankInfo}')
         file.close
     
