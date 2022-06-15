@@ -3,7 +3,7 @@ from cProfile import label
 from email import message
 from errno import EPERM
 import json
-from msilib.schema import TextStyle
+from msilib.schema import File, TextStyle
 from socket import timeout
 from tkinter import Button
 import requests
@@ -227,7 +227,7 @@ async def on_ready():
     # Start your loop.
     live_notifs_loop.start()
 
-class ModMailModal(ui.Modal, title='ModMail'):
+class ModMailModal(ui.Modal, title='Mod Mail'):
     Title = discord.ui.TextInput(label='Title', required=True, style=discord.TextStyle.short)
     Mail = discord.ui.TextInput(label= "Message", default= "Write what you want sent here.", required=True, style=discord.TextStyle.paragraph)
     Notes = discord.ui.TextInput(label= "Additional Notes", default="\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b\u200b", style=discord.TextStyle.short, required=False)
@@ -402,79 +402,7 @@ async def self(interaction: discord.Interaction):
          await interaction.response.send_message(f'The currently tracked streams include: {streams}')
          file.close()
 
-# This command lets you change the channel in which the bot outputs its logs.
-# I want to let users type in the channel with the # instead of copying the id. Shouldn't be too hard but work at it.
-# @tree.command(name="set_log_channel", description=f"Sets the channel to be used for the bot's logs." , guild= GUILD_ID)
-# async def self(interaction: discord.Interaction, logchannel: str):
-#     with open('channels.txt', 'r') as file:
-#         channels = file.read()
-#         channel_list = channels.split(',')
-#         channel_list[0] = logchannel
-#         newchannels = ",".join(channel_list)
-#         file.close()
-#     with open('channels.txt', "w") as file:
-#         file.writelines(newchannels)
-#         file.close()
-#         botid = int(get_channel(0))
-#         botchannel = client.get_channel(botid)
-#         newid = int(get_channel(1))
-#         await interaction.response.send_message(f'Log Channel successfully changed.')
-#         await botchannel.send(f"{interaction.user.mention} changed the log channel to <#{newid}>")
-
-# @tree.command(name="set_mod_mail_channel", description=f"Sets the channel to be used for the bot's mod mail." , guild= GUILD_ID)
-# async def self(interaction: discord.Interaction, mod_mail_channel: str):
-#     with open('channels.txt', 'r') as file:
-#         channels = file.read()
-#         channel_list = channels.split(',')
-#         channel_list[3] = mod_mail_channel
-#         newchannels = ",".join(channel_list)
-#         file.close()
-#     with open('channels.txt', "w") as file:
-#         file.writelines(newchannels)
-#         file.close()
-#         botid = int(get_channel(0))
-#         botchannel = client.get_channel(botid)
-#         newid = int(get_channel(3))
-#         await interaction.response.send_message(f'Mod Mail Channel successfully changed.')
-#         await botchannel.send(f"{interaction.user.mention} changed the Mod Mail channel to <#{newid}>")
-
-# # Sets where the bot sends tweets to.
-# @tree.command(name="set_tweet_channel", description=f"Sets the channel to be used for tweets." , guild= GUILD_ID)
-# async def self(interaction: discord.Interaction, tweet_channel: str):
-#     with open('channels.txt', 'r') as file:
-#         channels = file.read()
-#         channel_list = channels.split(',')
-#         channel_list[1] = tweet_channel
-#         newchannels = ",".join(channel_list)
-#         file.close()
-#     with open('channels.txt', "w") as file:
-#         file.writelines(newchannels)
-#         file.close()
-#         botid = int(get_channel(0))
-#         botchannel = client.get_channel(botid)
-#         newid = int(get_channel(1))
-#         await interaction.response.send_message(f'Tweet Channel successfully changed.')
-#         await botchannel.send(f"{interaction.user.mention} changed the Tweet channel to <#{newid}>")
-
-# # Sets where the bot sends livestreams to.
-# @tree.command(name="set_stream_channel", description=f"Sets the channel to be used for streams." , guild= GUILD_ID)
-# async def self(interaction: discord.Interaction, stream_channel: str):
-#     with open('channels.txt', 'r') as file:
-#         channels = file.read()
-#         channel_list = channels.split(',')
-#         channel_list[2] = stream_channel
-#         newchannels = ",".join(channel_list)
-#         file.close()
-#     with open('channels.txt', "w") as file:
-#         file.writelines(newchannels)
-#         file.close()
-#         botid = int(get_channel(0))
-#         botchannel = client.get_channel(botid)
-#         newid = int(get_channel(2))
-#         await interaction.response.send_message(f'Stream Channel successfully changed.')
-#         await botchannel.send(f"{interaction.user.mention} changed the Stream channel to <#{newid}>")
-
-
+# Used in conjunction with the /setchannel command. This actually changes the channel.
 async def change_channel(self, chosen_channel):
     with open('temp_function.txt', 'r') as file:
         chosen_function = file.read()
@@ -488,6 +416,8 @@ async def change_channel(self, chosen_channel):
         chosen_function = 2
     elif chosen_function == "Mod Mail":
         chosen_function = 3
+    elif chosen_function == "Announcement Channel":
+        chosen_function = 4
         
     with open('channels.txt', 'r') as file:
         channels = file.read()
@@ -499,7 +429,7 @@ async def change_channel(self, chosen_channel):
         file.writelines(newchannels)
         file.close()
     
-
+# Used in /setchannel, has the info for the channel select dropdown.
 class ChannelDropdown(discord.ui.Select):
     def __init__(self):
         text_channel_name_list = []
@@ -540,6 +470,7 @@ class ChannelDropdown(discord.ui.Select):
         
         await botchannel.send(f"{interaction.user.mention} changed the {chosen_function} to <#{id}>")
         
+# Used in /setchannel, has the info for the function select dropdown.
 class FunctionDropdown(discord.ui.Select):
     def __init__(self):
         # Set the options that will be presented inside the dropdown
@@ -548,6 +479,7 @@ class FunctionDropdown(discord.ui.Select):
             discord.SelectOption(label='Tweet Channel', emoji='🟦'),
             discord.SelectOption(label='Stream Channel', emoji='🟪'),
             discord.SelectOption(label='Mod Mail', emoji='🟥'),
+            discord.SelectOption(label="Announcement Channel", emoji='⬜')
         ]
         # The placeholder is what will be shown when no option is chosen
         # The min and max values indicate we can only pick one of the three options
@@ -588,11 +520,70 @@ async def self(interaction: discord.Interaction):
     view = FunctionDropdownView()
     await interaction.response.send_message('Choose a function to change.', view=view)
 
-    
 # Lists channels the bot is outputting too.
 @tree.command(name="mod_channel_list", description=f"Display all bot configured channels", guild= GUILD_ID)
 async def self(interaction: discord.Interaction):
-    await interaction.response.send_message(f"The current channels are:\nBot Log: <#{int(get_channel(0))}>\nTweet Channel: <#{int(get_channel(1))}>\nStream Channel: <#{int(get_channel(2))}>\nMod-Mail Channel: <#{int(get_channel(3))}>")
+    await interaction.response.send_message(f"The current channels are:\nBot Log: <#{int(get_channel(0))}>\nTweet Channel: <#{int(get_channel(1))}>\nStream Channel: <#{int(get_channel(2))}>\nMod-Mail Channel: <#{int(get_channel(3))}>\nAnnouncement Channel: <#{int(get_channel(4))}>")
+
+class AnnounceDropdown(discord.ui.Select):
+    def __init__(self):
+        text_channel_name_list = []
+        text_channel_id_list = []
+        for guild in client.guilds:
+            for channel in guild.channels:
+                if str(channel.type) == 'text':
+                    text_channel_name_list.append(channel.name)
+                    text_channel_id_list.append(channel.id)
+        options = [
+            discord.SelectOption(label=key)
+            for key in text_channel_name_list
+        ]
+        super().__init__(placeholder='Choose a channel..', min_values=1, max_values=1, options=options)
+    async def callback(self, interaction: discord.Interaction):
+        text_channel_name_list = []
+        text_channel_id_list = []
+        for guild in client.guilds:
+            for channel in guild.channels:
+                if str(channel.type) == 'text':
+                    text_channel_id_list.append(channel.id)
+                    text_channel_name_list.append(channel.name)
+        # Use the interaction object to send a response message containing
+        # the user's favourite colour or choice. The self object refers to the
+        # Select object, and the values attribute gets a list of the user's
+        # selected options. We only want the first one.
+        
+        id = text_channel_id_list[text_channel_name_list.index(self.values[0])]
+        Announcement_Channel = client.get_channel(id)
+        BotLog = client.get_channel(int(get_channel(0)))
+        
+        with open('temp_announcement.txt', 'r') as file:
+            announcement = file.read()
+        file.close()
+        await interaction.response.send_message("Your message has been sent!", ephemeral=True)
+        await BotLog.send(f'{interaction.user.mention} sent the message "{announcement}" using the bot in <#{id}>')
+        await Announcement_Channel.send(f"{announcement}")
+        
+class AnnounceDropdownView(discord.ui.View):
+    def __init__(self):
+        super().__init__()
+
+        # Adds the dropdown to our view object.
+        self.add_item(AnnounceDropdown())
+
+@tree.command(name="announce", description=f'Sends a message to the specified channel as the bot.', guild= GUILD_ID)
+async def self(interaction: discord.Interaction, message: str):
+    print(message)
+    view= AnnounceDropdownView()
+    with open('temp_announcement.txt', 'w') as file:
+        file.writelines(message)
+    file.close()
+        
+    #id = int(get_channel(4))
+    #Announcement_Channel = client.get_channel(id)
+    await interaction.response.send_message("What channel would you like to send an announcement to?", view=view)
+    
+
+
 
 # Future help command!
 @tree.command(name="help", description=f'Sends the User a DM with command information.', guild= GUILD_ID)
@@ -600,7 +591,19 @@ async def self(interaction: discord.Interaction):
     user = interaction.user
     print(f'Sent a help message to {user}')
     await interaction.response.send_message("A DM has been sent!", ephemeral = True)
-    await user.send('lol trolled\nhttps://tenor.com/view/rickroll-roll-rick-never-gonna-give-you-up-never-gonna-gif-22954713')
+    embed = discord.Embed(
+            color=discord.Color.random(),
+            title=f"Command List")
+    #embed.add_field(name="announce", value="Lets you")
+    embed.add_field(name="hello", value="The bot will respond back with a simple 'Hello @you!'")
+    embed.add_field(name="help", value="Sends this message!")
+    embed.add_field(name="ping", value="Checks the latency of the bot. Responds with 'Pong! **ms'")
+    #embed.add_field(name="", value="")
+
+    embed.timestamp = datetime.now()
+    await user.send(embed=embed)
+    
+    #await user.send('lol trolled\nhttps://tenor.com/view/rickroll-roll-rick-never-gonna-give-you-up-never-gonna-gif-22954713')
 
 # Pong!
 @tree.command(name="ping", description=f'Reports latency.', guild= GUILD_ID)
