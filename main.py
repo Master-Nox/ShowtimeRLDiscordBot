@@ -780,6 +780,67 @@ async def self(interaction: discord.Interaction, usertag: str):
     embed.timestamp = datetime.now()
     await user.send(embed=embed)
     
+
+@tree.command(name="role_test", guild= GUILD_ID)
+async def self(interaction: discord.Interaction):
+    view = Role_Buttons()
+    await interaction.response.send_message("Test Role Message!", view=view)
+
+class Role_Buttons(discord.ui.View):
+    def __init__(self):
+        super().__init__()
+        self.value = None
+
+    # When the confirm button is pressed, set the inner value to `True` and
+    # stop the View from listening to more input.
+    # We also send the user an ephemeral message that we're confirming their choice.
+    @discord.ui.button(label='Role 1', style=discord.ButtonStyle.gray, emoji='❓')
+    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+        
+        guild = client.get_guild(interaction.guild_id)
+        if guild is None:
+        # Check if we're still in the guild and it's cached.
+            print("Guild None")
+            return
+        
+        role = guild.get_role(986714816200712223)
+        if role is None:
+        # Make sure the role still exists and is valid.
+            print("Role Doesn't Exist")
+            return
+        
+        if role in interaction.user.roles:
+            try:
+        # Finally, remove the role.
+                await interaction.user.remove_roles(role)
+            except discord.HTTPException:
+        # If we want to do something in case of errors we'd do it here.
+                print("Error removing role")
+                pass
+        else:
+            try:
+            # Finally, add the role.
+                await interaction.user.add_roles(role)
+            except discord.HTTPException:
+            # If we want to do something in case of errors we'd do it here.
+                print("Error Adding Role")
+                pass
+        await interaction.response.send_message("Role updated.", ephemeral=True)
+        
+        #self.value = "❓"
+        #self.stop()
+
+    # This one is similar to the confirmation button except sets the inner value to `False`
+    
+    # @discord.ui.button(label='💬', style=discord.ButtonStyle.blurple)
+    # async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+    #     x = ModMailModal()
+    #     await interaction.response.send_modal(x)
+    #     await TeamModal.wait(x)
+    #     self.value = "💬"
+    #     self.stop()
+
+    
 # def getJson(username):
 #   key = '8f8782a3-53e3-4174-bdf6-9d4329ce0f72' # Your key goes here, this is mine
 #   platform = 'epic'
