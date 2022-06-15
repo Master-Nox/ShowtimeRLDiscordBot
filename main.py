@@ -155,11 +155,8 @@ def log_and_print_exception(e):
 
 # Gets a twitter account's latest tweet.
 def checktwitter(twitter_name, self=None):
-    id = (int(get_channel(1)))
-    #channel = client.get_channel(id)
     user = twitclient.get_user(username=twitter_name) # Takes in plain text uername (id) and turns it into user information.
     tweets = twitclient.get_users_tweets(user.data.id, exclude='replies,retweets') # Takes the user information and turns it into a user id to be used for get_users_tweets. Then grabs the 10 latest tweets.
-    #message = ""
     mostrecenttweet = tweets.data[0].id
     return mostrecenttweet
 
@@ -186,11 +183,7 @@ def checkuser(streamer_name, self=None):
 # Checks if the live notification has already been sent.
 async def has_notif_already_sent(channel, twitch_name):
     async for message in channel.history(limit=200):
-        with open('streams.txt', 'r') as file:
-            streams = (file.read())
-            streamlist = streams.split(",")
             if f"\nhttps://twitch.tv/{twitch_name}" in message.content:
-                file.close()
                 return message
     else:
         return False
@@ -198,26 +191,18 @@ async def has_notif_already_sent(channel, twitch_name):
 # Checks if a tweet has already been sent
 async def has_tweet_already_sent(channel, tweet_id):
     async for message in channel.history(limit=200):
-        with open('streams.txt', 'r') as file:
-            streams = (file.read())
-            streamlist = streams.split(",")
             if f'https://vxtwitter.com/twitter/statuses/{tweet_id}' in message.content:
-                file.close()
                 return message
     else:
         return False
 
-# 0=botlog, 1=tweets, 2=streams, 3=modmail
+# 0=botlog, 1=tweets, 2=streams, 3=modmail, 4=announcements
 def get_channel(id):
     file = open('channels.txt', "r")
     channels = file.read()
     channel_list = channels.split(",")
     try:
-        requestname = client.get_channel(int(channel_list[id]))
         request = channel_list[id]
-    # streamlist.remove(f'{twitch_name}')
-    # newstreams = ",".join(streamlist)
-    #print(f' the requested channel is {requestname}')
     except:
         print("Channel not listed listed in channel file!")
     file.close()
@@ -261,13 +246,9 @@ async def on_ready():
                         print(f"{twitter_name} tweeted. Sending a notification.")
                         message = 'https://vxtwitter.com/twitter/statuses/'+str(tweet_id)
                         await channel1.send(message)
-                    # else:
-                    #     print("Tweet has already been sent")
             if streams != "":
                 # Gets the guild, 'twitch streams' channel, and streaming role.
-                #guild = client.get_guild(980108559226380318)
                 channel = client.get_channel(int(get_channel(2)))
-                # role = get(guild.roles, id=980827359232004156)
                 # Loops through the json and gets the key,value which in this case is the user_id and twitch_name of
                 # every item in the json.
                 for twitch_name in streamlist:
@@ -278,17 +259,13 @@ async def on_ready():
                     status, stream_data = checkuser(twitch_name)
                     # Makes sure they're live
                     if status is True:
-                        #thumbnail_url_first_part = stream_data['data'][0]['thumbnail_url'].split('{')
-                        #full_thumbnail_url = f"{thumbnail_url_first_part[0]}1920x1080.jpg"
                         # Checks to see if the live message has already been sent.
                         message = await has_notif_already_sent(channel, twitch_name)
                         if message is not False:
                             continue
                         await channel.send(
                             f":red_circle: **LIVE**"
-                            #f"\n{user.mention} is now playing {stream_data['data'][0]['game_name']} on Twitch!"
                             f"\n@here Come watch!"
-                            #f"\n{stream_data['data'][0]['title']}", file=discord.File(fp=buffer, filename="thumbnail.jpg"))
                             f"\n{stream_data['data'][0]['title']}"
                             f"\nhttps://twitch.tv/{twitch_name}")
                         print(f"A livestream has started. Sending a notification.")
@@ -606,6 +583,7 @@ async def self(interaction: discord.Interaction):
 async def self(interaction: discord.Interaction):
     await interaction.response.send_message(f"The current channels are:\nBot Log: <#{int(get_channel(0))}>\nTweet Channel: <#{int(get_channel(1))}>\nStream Channel: <#{int(get_channel(2))}>\nMod-Mail Channel: <#{int(get_channel(3))}>\nAnnouncement Channel: <#{int(get_channel(4))}>")
 
+# Used in /announce, contains the dropdown to select the proper channel.
 class AnnounceDropdown(discord.ui.Select):
     def __init__(self):
         text_channel_name_list = []
@@ -644,6 +622,7 @@ class AnnounceDropdown(discord.ui.Select):
         await BotLog.send(f'{interaction.user.mention} sent the message "{announcement}" using the bot in <#{id}>')
         await Announcement_Channel.send(f"{announcement}")
         
+# Creates the view for the Announce Dropdown.
 class AnnounceDropdownView(discord.ui.View):
     def __init__(self):
         super().__init__()
@@ -651,6 +630,7 @@ class AnnounceDropdownView(discord.ui.View):
         # Adds the dropdown to our view object.
         self.add_item(AnnounceDropdown())
 
+# Lets the user say things through the bot in a specified channel.
 @tree.command(name="announce", description=f'Sends a message to the specified channel as the bot.', guild= GUILD_ID)
 async def self(interaction: discord.Interaction, message: str):
     view= AnnounceDropdownView()
@@ -658,8 +638,6 @@ async def self(interaction: discord.Interaction, message: str):
         file.writelines(message)
     file.close()
         
-    #id = int(get_channel(4))
-    #Announcement_Channel = client.get_channel(id)
     await interaction.response.send_message("What channel would you like to send an announcement to?", view=view)
     
 # Future help command!
@@ -680,8 +658,6 @@ async def self(interaction: discord.Interaction):
     embed.timestamp = datetime.now()
     await user.send(embed=embed)
     
-    #await user.send('lol trolled\nhttps://tenor.com/view/rickroll-roll-rick-never-gonna-give-you-up-never-gonna-gif-22954713')
-
 # Pong!
 @tree.command(name="ping", description=f'Reports latency.', guild= GUILD_ID)
 async def self(interaction: discord.Interaction):
@@ -693,13 +669,11 @@ async def self(interaction: discord.Interaction):
     author = interaction.user
     await interaction.response.send_message(f'Hello {author.mention}!')
 
+# Sends information to the bot log about any user who joins.
 @client.event
 async def on_member_join(member):
-    #currentchannel = client.get_channel(980108559918456917)
     botlog = client.get_channel(int(get_channel(0)))
-    #content = interaction.message
     guildname = client.fetch_guild.__name__
-    #member = discord.member(member)
     await member.send(f'Welcome to {guildname} {member.mention}!')
     try:
         roles = [role for role in member.roles[1:]]
@@ -708,7 +682,6 @@ async def on_member_join(member):
             title=f"{member}",
             description=f"{member.mention}")
         embed.add_field(name="**ID**", value=f"{member.id}", inline=True)
-        # embed.add_field(name="**•Status•**", value=str(member.status).replace("dnd", "Do Not Disturb"), inline=True)
         try:
             embed.set_thumbnail(url=f"{member.avatar.url}")
         except:
@@ -720,7 +693,6 @@ async def on_member_join(member):
                         inline=True)
         embed.add_field(name="**Server Join Date**", value=f"{member.joined_at}".replace("-", "/"),
                         inline=True)
-        #embed.set_footer(text=f'ID: {member.id}  •  {datetime.strftime(fmt="%m, %d, %y", self=member)}')
         embed.timestamp = datetime.now()
         await botlog.send(embed=embed)
     except:
@@ -740,12 +712,11 @@ async def on_member_join(member):
                         inline=True)
         embed.add_field(name="**Server Join Date**", value=f"{member.joined_at}".replace("-", "/"),
                         inline=True)
-        #embed.set_footer(text=f'ID: {member.id}  •  {datetime.strftime(fmt="%m, %d, %y", self=member)}')
         embed.timestamp = datetime.now()
         await botlog.send(embed=embed)
-        # await botlog.send(f'{message.author.mention} has joined.')
     await client.wait_until_ready()
 
+# Modal for showmatch test
 class TeamModal(ui.Modal, title='Team Information'):
     TeamName = discord.ui.TextInput(label='Team Name', required=True)
     Players = discord.ui.TextInput(label= "Player IDs", default= "Master Nox#6330, Master Nox#6330, Master Nox#6330", required=True)
@@ -778,6 +749,7 @@ class TeamModal(ui.Modal, title='Team Information'):
         embed.timestamp = datetime.now()
         await interaction.response.send_message("Your information has been recorded and sent as follows.",embed=embed, ephemeral=True)
 
+# Test for the showmatch system. Need to find a way to properly record and remember information.
 @tree.command(name="showmatch_test", description=f'WIP', guild= GUILD_ID)
 async def self(interaction: discord.Interaction, usertag: str):
     author = interaction.user
@@ -789,14 +761,9 @@ async def self(interaction: discord.Interaction, usertag: str):
     await interaction.response.send_modal(x)
     await TeamModal.wait(x)
     TeamName1 = x.children[0].view.TeamName.value
-    #print(TeamName1)
     Team1Players = x.children[0].view.Players.value
-    #print(Team1Players)
     Team1Subs = x.children[0].view.Subs.value
-    #print(Team1Subs)
     Team1Rank = x.children[0].view.RankInfo.value
-    #print(Team1Rank)
-    #with open( )
     embed = discord.Embed(
             color=discord.Color.random(),
             title=f"Match Request from {author}",
