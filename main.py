@@ -32,6 +32,87 @@ class aclient(discord.Client):
         super().__init__(intents=intents)
         self.synced = False
 
+        self.role_message_id = 986715647838937148  # ID of the message that can be reacted to to add/remove a role. WILL WANT TO TURN THIS INFO A READABLE FILE SO IT CAN BE EDITED
+        self.emoji_to_role = {
+            discord.PartialEmoji(name='🔴'): 986714816200712223,  # ID of the role associated with unicode emoji '🔴'.
+            discord.PartialEmoji(name='🟡'): 986714853685198908,  # ID of the role associated with unicode emoji '🟡'.
+            discord.PartialEmoji(name='🖤'): 986715160880242799,  # ID of the role associated with a partial emoji's ID.
+        }
+        
+    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
+        """Gives a role based on a reaction emoji."""
+    # Make sure that the message the user is reacting to is the one we care about.
+        if payload.message_id != self.role_message_id:
+            return
+
+        guild = self.get_guild(payload.guild_id)
+        if guild is None:
+        # Check if we're still in the guild and it's cached.
+            print("Guild None")
+            return
+
+        try:
+            role_id = self.emoji_to_role[payload.emoji]
+        except KeyError:
+        # If the emoji isn't the one we care about then exit as well.
+            print("Wrong emoji")
+            return
+
+        role = guild.get_role(role_id)
+        if role is None:
+        # Make sure the role still exists and is valid.
+            print("Role Doesn't Exist")
+            return
+
+        try:
+        # Finally, add the role.
+            await payload.member.add_roles(role)
+        except discord.HTTPException:
+        # If we want to do something in case of errors we'd do it here.
+            print("Error Adding Role")
+            pass
+
+    async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
+        """Removes a role based on a reaction emoji."""
+    # Make sure that the message the user is reacting to is the one we care about.
+        if payload.message_id != self.role_message_id:
+            print("Wrong Message")
+            return
+
+        guild = self.get_guild(payload.guild_id)
+        if guild is None:
+        # Check if we're still in the guild and it's cached.
+            print("Not in Guild")
+            return
+
+        try:
+            role_id = self.emoji_to_role[payload.emoji]
+        except KeyError:
+            print("Wrong Emoji")
+        # If the emoji isn't the one we care about then exit as well.
+            return
+
+        role = guild.get_role(role_id)
+        if role is None:
+        # Make sure the role still exists and is valid.
+            print("Role Error")
+            return
+
+    # The payload for `on_raw_reaction_remove` does not provide `.member`
+    # so we must get the member ourselves from the payload's `.user_id`.
+        member = guild.get_member(payload.user_id)
+        if member is None:
+        # Make sure the member still exists and is valid.
+            return
+
+        try:
+        # Finally, remove the role.
+            await member.remove_roles(role)
+        except discord.HTTPException:
+        # If we want to do something in case of errors we'd do it here.
+            print("Error removing role")
+            pass
+        
 client = aclient()
 tree = app_commands.CommandTree(client)
 
@@ -572,7 +653,6 @@ class AnnounceDropdownView(discord.ui.View):
 
 @tree.command(name="announce", description=f'Sends a message to the specified channel as the bot.', guild= GUILD_ID)
 async def self(interaction: discord.Interaction, message: str):
-    print(message)
     view= AnnounceDropdownView()
     with open('temp_announcement.txt', 'w') as file:
         file.writelines(message)
@@ -582,9 +662,6 @@ async def self(interaction: discord.Interaction, message: str):
     #Announcement_Channel = client.get_channel(id)
     await interaction.response.send_message("What channel would you like to send an announcement to?", view=view)
     
-
-
-
 # Future help command!
 @tree.command(name="help", description=f'Sends the User a DM with command information.', guild= GUILD_ID)
 async def self(interaction: discord.Interaction):
@@ -595,9 +672,9 @@ async def self(interaction: discord.Interaction):
             color=discord.Color.random(),
             title=f"Command List")
     #embed.add_field(name="announce", value="Lets you")
-    embed.add_field(name="hello", value="The bot will respond back with a simple 'Hello @you!'")
-    embed.add_field(name="help", value="Sends this message!")
-    embed.add_field(name="ping", value="Checks the latency of the bot. Responds with 'Pong! **ms'")
+    embed.add_field(name="hello", value='The bot will respond back with a simple "Hello @you!"', inline=False)
+    embed.add_field(name="help", value="Sends this message.", inline = False)
+    embed.add_field(name="ping", value='Checks the latency of the bot. Responds with "Pong! **ms"', inline=False)
     #embed.add_field(name="", value="")
 
     embed.timestamp = datetime.now()
