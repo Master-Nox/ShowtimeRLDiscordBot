@@ -9,7 +9,7 @@ from tkinter import Button
 import requests
 from requests_oauthlib import OAuth1Session
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from asyncio import sleep as s
 # from webserver import keep_alive
 import discord
@@ -25,6 +25,45 @@ import tweepy
 from dotenv import load_dotenv
 load_dotenv()
 
+class Role_Buttons(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.value = None
+
+    # When the confirm button is pressed, set the inner value to `True` and
+    # stop the View from listening to more input.
+    # We also send the user an ephemeral message that we're confirming their choice.
+    @discord.ui.button(label='Role 1', style=discord.ButtonStyle.gray, emoji='❓', custom_id='STRL:RoleButton1')
+    async def Role1(self, interaction: discord.Interaction, button: discord.ui.Button):
+        guild = client.get_guild(interaction.guild_id)
+        if guild is None:
+        # Check if we're still in the guild and it's cached.
+            print("Guild None")
+            return
+        role = guild.get_role(986714816200712223)
+        if role is None:
+        # Make sure the role still exists and is valid.
+            print("Role Doesn't Exist")
+            return
+        if role in interaction.user.roles:
+            try:
+        # Finally, remove the role.
+                await interaction.user.remove_roles(role)
+            except discord.HTTPException:
+        # If we want to do something in case of errors we'd do it here.
+                print("Error removing role")
+                pass
+        else:
+            try:
+            # Finally, add the role.
+                await interaction.user.add_roles(role)
+            except discord.HTTPException:
+            # If we want to do something in case of errors we'd do it here.
+                print("Error Adding Role")
+                pass
+        await interaction.response.send_message("Role updated.", ephemeral=True)
+        
+
 class aclient(discord.Client):
     def __init__(self):
         intents = discord.Intents.default()
@@ -32,86 +71,15 @@ class aclient(discord.Client):
         super().__init__(intents=intents)
         self.synced = False
 
-        self.role_message_id = 986715647838937148  # ID of the message that can be reacted to to add/remove a role. WILL WANT TO TURN THIS INFO A READABLE FILE SO IT CAN BE EDITED
-        self.emoji_to_role = {
-            discord.PartialEmoji(name='🔴'): 986714816200712223,  # ID of the role associated with unicode emoji '🔴'.
-            discord.PartialEmoji(name='🟡'): 986714853685198908,  # ID of the role associated with unicode emoji '🟡'.
-            discord.PartialEmoji(name='🖤'): 986715160880242799,  # ID of the role associated with a partial emoji's ID.
-        }
-        
-    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
-        """Gives a role based on a reaction emoji."""
-    # Make sure that the message the user is reacting to is the one we care about.
-        if payload.message_id != self.role_message_id:
-            return
-
-        guild = self.get_guild(payload.guild_id)
-        if guild is None:
-        # Check if we're still in the guild and it's cached.
-            print("Guild None")
-            return
-
-        try:
-            role_id = self.emoji_to_role[payload.emoji]
-        except KeyError:
-        # If the emoji isn't the one we care about then exit as well.
-            print("Wrong emoji")
-            return
-
-        role = guild.get_role(role_id)
-        if role is None:
-        # Make sure the role still exists and is valid.
-            print("Role Doesn't Exist")
-            return
-
-        try:
-        # Finally, add the role.
-            await payload.member.add_roles(role)
-        except discord.HTTPException:
-        # If we want to do something in case of errors we'd do it here.
-            print("Error Adding Role")
-            pass
-
-    async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
-        """Removes a role based on a reaction emoji."""
-    # Make sure that the message the user is reacting to is the one we care about.
-        if payload.message_id != self.role_message_id:
-            print("Wrong Message")
-            return
-
-        guild = self.get_guild(payload.guild_id)
-        if guild is None:
-        # Check if we're still in the guild and it's cached.
-            print("Not in Guild")
-            return
-
-        try:
-            role_id = self.emoji_to_role[payload.emoji]
-        except KeyError:
-            print("Wrong Emoji")
-        # If the emoji isn't the one we care about then exit as well.
-            return
-
-        role = guild.get_role(role_id)
-        if role is None:
-        # Make sure the role still exists and is valid.
-            print("Role Error")
-            return
-
-    # The payload for `on_raw_reaction_remove` does not provide `.member`
-    # so we must get the member ourselves from the payload's `.user_id`.
-        member = guild.get_member(payload.user_id)
-        if member is None:
-        # Make sure the member still exists and is valid.
-            return
-
-        try:
-        # Finally, remove the role.
-            await member.remove_roles(role)
-        except discord.HTTPException:
-        # If we want to do something in case of errors we'd do it here.
-            print("Error removing role")
-            pass
+    # Need to move this far up.
+    async def setup_hook(self) -> None:
+            # Register the persistent view for listening here.
+            # Note that this does not send the view to any message.
+            # In order to do this you need to first send a message with the View, which is shown below.
+            # If you have the message_id you can also pass it as a keyword argument, but for this example
+            # we don't have one.
+            self.add_view(Role_Buttons())
+            self.persistent_views_added = True
         
 client = aclient()
 tree = app_commands.CommandTree(client)
@@ -145,6 +113,23 @@ twitclient = tweepy.Client(bearer_token=os.getenv('twit_bearer_token'),
                        access_token=os.getenv('twit_access_token'),
                        access_token_secret=os.getenv('twit_access_token_secret'))
 twitclient.wait_on_rate_limit=True
+
+start_time = datetime.now()
+
+
+@client.event
+async def on_disconnect():
+    uptimedelta = datetime.now() - start_time
+    print('ShowtimeRL Bot was disconnected at ' + datetime.ctime(start_time) + '. ShowtimeRL Bot has been up for ' + str(timedelta(seconds=uptimedelta.seconds)))
+
+@client.event
+async def on_resumed():
+    uptimedelta = datetime.now() - start_time
+    print("ShowtimeRL Bot reconnected " + datetime.ctime(start_time) + '. ShowtimeRL Bot has been up for ' + str(timedelta(seconds=uptimedelta.seconds)))
+
+@client.event
+async def on_connect():
+    print('ShowtimeRL Bot was connected starting at ' + datetime.ctime(datetime.now()))
 
 # Logs exception to .txt file.
 def log_and_print_exception(e):
@@ -213,12 +198,12 @@ def get_channel(id):
 async def on_ready():
     await discord.Client.wait_until_ready(client)
     if not client.synced:
-        await tree.sync(guild= discord.Object(id=980108559226380318))
+        await tree.sync(guild= GUILD_ID)
         self.synced = True
     print(f"Bot has logged in.")
     # Defines a loop that will run every 10 seconds (checks for live users every 10 seconds).
 
-    @tasks.loop(seconds=30)
+    @tasks.loop(seconds=60)
     async def live_notifs_loop():
 
         # Opens and reads the json file
@@ -631,7 +616,7 @@ class AnnounceDropdownView(discord.ui.View):
         self.add_item(AnnounceDropdown())
 
 # Lets the user say things through the bot in a specified channel.
-@tree.command(name="announce", description=f'Sends a message to the specified channel as the bot.', guild= GUILD_ID)
+@tree.command(name="say", description=f'Sends a message to the specified channel as the bot.', guild= GUILD_ID)
 async def self(interaction: discord.Interaction, message: str):
     view= AnnounceDropdownView()
     with open('temp_announcement.txt', 'w') as file:
@@ -786,49 +771,8 @@ async def self(interaction: discord.Interaction):
     view = Role_Buttons()
     await interaction.response.send_message("Test Role Message!", view=view)
 
-class Role_Buttons(discord.ui.View):
-    def __init__(self):
-        super().__init__()
-        self.value = None
 
-    # When the confirm button is pressed, set the inner value to `True` and
-    # stop the View from listening to more input.
-    # We also send the user an ephemeral message that we're confirming their choice.
-    @discord.ui.button(label='Role 1', style=discord.ButtonStyle.gray, emoji='❓')
-    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
-        
-        guild = client.get_guild(interaction.guild_id)
-        if guild is None:
-        # Check if we're still in the guild and it's cached.
-            print("Guild None")
-            return
-        
-        role = guild.get_role(986714816200712223)
-        if role is None:
-        # Make sure the role still exists and is valid.
-            print("Role Doesn't Exist")
-            return
-        
-        if role in interaction.user.roles:
-            try:
-        # Finally, remove the role.
-                await interaction.user.remove_roles(role)
-            except discord.HTTPException:
-        # If we want to do something in case of errors we'd do it here.
-                print("Error removing role")
-                pass
-        else:
-            try:
-            # Finally, add the role.
-                await interaction.user.add_roles(role)
-            except discord.HTTPException:
-            # If we want to do something in case of errors we'd do it here.
-                print("Error Adding Role")
-                pass
-        await interaction.response.send_message("Role updated.", ephemeral=True)
-        
-        #self.value = "❓"
-        #self.stop()
+
 
     # This one is similar to the confirmation button except sets the inner value to `False`
     
