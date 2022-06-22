@@ -15,3 +15,9 @@
 2022-06-22 12:50:09.710585, test 2, Master Nox#6330, Master Nox#6330, Master Nox#6330, BluBlazing#7777, BluBlazing#7777, BluBlazing#7777, 10
 2022-06-22 13:00:38.684937, Red Team, Master Nox#6330, Master Nox#6330, Master Nox#6330, BluBlazing#7777, BluBlazing#7777, BluBlazing#7777, 9000
 2022-06-22 13:01:22.909017, Blue Team, Master Nox#6330, Master Nox#6330, Master Nox#6330, BluBlazing#7777, BluBlazing#7777, BluBlazing#7777, 9001
+2022-06-22 13:32:26.005214, Red Team, Master Nox#6330, Master Nox#6330, Master Nox#6330, BluBlazing#7777, BluBlazing#7777, BluBlazing#7777, 0
+2022-06-22 13:32:46.414022, Blue Team, Master Nox#6330, Master Nox#6330, Master Nox#6330, BluBlazing#7777, BluBlazing#7777, BluBlazing#7777, 0
+2022-06-22 13:33:27.484112, Red Team, Master Nox#6330, Master Nox#6330, Master Nox#6330, BluBlazing#7777, BluBlazing#7777, BluBlazing#7777, 0
+2022-06-22 13:34:03.106885, Blue Team, Master Nox#6330, Master Nox#6330, Master Nox#6330, BluBlazing#7777, BluBlazing#7777, BluBlazing#7777, 0
+2022-06-22 13:35:02.212991, Red Team, Master Nox#6330, Master Nox#6330, Master Nox#6330, BluBlazing#7777, BluBlazing#7777, BluBlazing#7777, 0
+2022-06-22 13:36:02.814092, Blue Team, Master Nox#6330, Master Nox#6330, Master Nox#6330, BluBlazing#7777, BluBlazing#7777, BluBlazing#7777, 0
