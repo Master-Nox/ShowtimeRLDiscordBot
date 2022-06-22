@@ -22,8 +22,10 @@ from discord.utils import get
 import discord
 from discord import app_commands, ui
 import tweepy
+import http.client
 from dotenv import load_dotenv
 load_dotenv()
+
 
 class Role_Buttons(discord.ui.View):
     def __init__(self):
@@ -711,10 +713,6 @@ class TeamModal(ui.Modal, title='Team Information'):
     Subs = discord.ui.TextInput(label= "Sub IDs", default= "BluBlazing#7777, BluBlazing#7777, BluBlazing#7777", required=True)
     #Subs = discord.ui.Select(options=[discord.SelectOption(label='Yes Subs'), discord.SelectOption(label='No Subs')])
     RankInfo = discord.ui.TextInput(label="Average Team Rank", default="0", required=True)
-
-    with open(f'./{TeamName} Match Info.txt', 'w') as file:
-        file.write(f'{TeamName}\n{Players}\n{Subs}\n{RankInfo}')
-        file.close
     
     async def on_submit(self, interaction):
         author = interaction.user
@@ -732,7 +730,33 @@ class TeamModal(ui.Modal, title='Team Information'):
         embed.add_field(name=f"**Subs**", value=f"{self.Subs}", inline=True)
         embed.add_field(name="**Average Rank**", value=f"{self.RankInfo}", inline=False)
         embed.timestamp = datetime.now()
+        
+        with open(f'./Matches.txt', 'a') as file:
+            file.writelines(f'{datetime.now()}, {self.TeamName}, {self.Players}, {self.Subs}, {self.RankInfo}\n')
+        file.close
+        
         await interaction.response.send_message("Your information has been recorded and sent as follows.",embed=embed, ephemeral=True)
+
+class ConfirmDeny(discord.ui.View):
+    def __init__(self):
+        super().__init__()
+        self.value = None
+
+    # When the confirm button is pressed, set the inner value to `True` and
+    # stop the View from listening to more input.
+    # We also send the user an ephemeral message that we're confirming their choice.
+    @discord.ui.button(label='✔️', style=discord.ButtonStyle.green)
+    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("You've accepted the match!")
+        self.value = "✔️"
+        self.stop()
+
+    # This one is similar to the confirmation button except sets the inner value to `False`
+    @discord.ui.button(label='❌', style=discord.ButtonStyle.red)
+    async def deny(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("You've denied the match!")
+        self.value = "❌"
+        self.stop()
 
 # Test for the showmatch system. Need to find a way to properly record and remember information.
 @tree.command(name="showmatch_test", description=f'WIP', guild= GUILD_ID)
@@ -763,9 +787,103 @@ async def self(interaction: discord.Interaction, usertag: str):
     embed.add_field(name=f"**Subs**", value=f"{Team1Subs}", inline=True)
     embed.add_field(name="**Average Rank**", value=f"{Team1Rank}", inline=False)
     embed.timestamp = datetime.now()
-    await user.send(embed=embed)
-    
+    view = ConfirmDeny()
+    await user.send(embed=embed, view=view)
+    await ConfirmDeny.wait(view)
+    conn = http.client.HTTPSConnection('eor82olfyhrllj.m.pipedream.net')
+    conn.request("POST", "/", '{"Information": "'+TeamName1+'"}', {'Content-Type': 'application/json'})
+    if view.children[0].view.confirm.view.value == "✔️":
+        await author.send(f"Your opponent ({usertag}) has accepted the match!")
+    else:
+        await author.send(f"Your opponent ({usertag}) has denied the match!")
 
+class TeamModal2(ui.Modal, title='Team Information'):
+    TeamName = discord.ui.TextInput(label='Team Name', required=True)
+    Players = discord.ui.TextInput(label= "Player IDs", default= "Master Nox#6330, Master Nox#6330, Master Nox#6330", required=True)
+    #Player1 = discord.ui.TextInput(label= "Player 1 ID", default= "Master Nox#6330", required=True)
+    #Player2 = discord.ui.TextInput(label= "Player 2 ID", default= "BluBlazing#7777", required=True)
+    #Player3 = discord.ui.TextInput(label= "Player 3 ID", default= "Planet#9951", required=True)
+    Subs = discord.ui.TextInput(label= "Sub IDs", default= "BluBlazing#7777, BluBlazing#7777, BluBlazing#7777", required=True)
+    #Subs = discord.ui.Select(options=[discord.SelectOption(label='Yes Subs'), discord.SelectOption(label='No Subs')])
+    RankInfo = discord.ui.TextInput(label="Average Team Rank", default="0", required=True)
+    
+    async def on_submit(self, interaction):
+        author = interaction.user
+        embed = discord.Embed(
+            color=discord.Color.random(),
+            title=f"Match Request from {author}",
+            description=f"You've received a match request!\nPlease accept or deny after checking the details.")
+        try:
+            embed.set_thumbnail(url=f"{author.avatar.url}")
+        except:
+            embed.set_thumbnail(url='https://styles.redditmedia.com/t5_2qhk5/styles/communityIcon_v58lvj23zo551.jpg')
+            print(f'{author} did not have an avatar url.')
+        embed.add_field(name="**Team Name**", value=f"{self.TeamName}", inline=False)
+        embed.add_field(name=f"**Players**", value=f"{self.Players}", inline=True)
+        embed.add_field(name=f"**Subs**", value=f"{self.Subs}", inline=True)
+        embed.add_field(name="**Average Rank**", value=f"{self.RankInfo}", inline=False)
+        embed.timestamp = datetime.now()
+        
+        with open(f'./Matches.txt', 'a') as file:
+            file.writelines(f'{datetime.now()}, {self.TeamName}, {self.Players}, {self.Subs}, {self.RankInfo}\n')
+        file.close
+        
+        await interaction.response.send_message("Your team data has been stored.", ephemeral=True)
+        #await interaction.response.send_message("Your information has been recorded and sent as follows.",embed=embed, ephemeral=True)
+
+@tree.command(name="showmatch_test2", description="Now using google forms!", guild= GUILD_ID)
+async def self(interaction: discord.Interaction, usertag: str):
+    author = interaction.user
+    user = usertag.removeprefix('<@!')
+    user = user.removesuffix('>')
+    user = int(user)
+    user = await client.fetch_user(user)
+    x = TeamModal2()
+    await interaction.response.send_modal(x)
+    await TeamModal2.wait(x)
+    TeamName1 = x.children[0].view.TeamName.value
+    Team1Players = x.children[0].view.Players.value
+    Team1Subs = x.children[0].view.Subs.value
+    Team1Rank = x.children[0].view.RankInfo.value
+    
+    y = TeamModal2()
+    await user.send_modal(y)
+    await TeamModal2.wait(y)
+    
+    
+    
+    
+    conn = http.client.HTTPSConnection('eor82olfyhrllj.m.pipedream.net')
+    conn.request("POST", "/", '{"Team Name": "'+TeamName1+'", {""}}', {'Content-Type': 'application/json'})
+    
+@tree.command(name="record_team_info", guild= GUILD_ID)
+async def self(interaction: discord.Interaction):
+    TeamCaptain = interaction.user
+    index = 0
+    flag = 0
+    with open('Teams.txt', 'r') as file:
+        for line in file:
+            index +=1
+            if "Captain: "+ str(TeamCaptain) in line:
+                flag = 1
+                break
+            if "Team Name: "
+    file.close
+    
+    if flag == 1:
+        await interaction.response.send_message("You are already listed as a Captain in our database, consider altering your team instead.", ephemeral=True)
+    else:
+        x = TeamModal2()
+        await interaction.response.send_modal(x)
+        await TeamModal2.wait(x)
+        TeamName = x.children[0].view.TeamName.value
+        TeamPlayers = x.children[0].view.Players.value
+        TeamSubs = x.children[0].view.Subs.value
+        TeamRank = x.children[0].view.RankInfo.value
+        with open('Teams.txt', 'a') as file:
+            file.writelines(f"Captain: {TeamCaptain}\nTeam Name: {TeamName}\nAverage Team Rank: {TeamRank}\nTeam Players: {TeamPlayers}\nTeam Subs: {TeamSubs}\n\n")
+        file.close
+    
 @tree.command(name="role_test", guild= GUILD_ID)
 async def self(interaction: discord.Interaction):
     view = Role_Buttons()
