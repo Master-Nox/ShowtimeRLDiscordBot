@@ -859,6 +859,7 @@ async def self(interaction: discord.Interaction, usertag: str):
 @tree.command(name="record_team_info", guild= GUILD_ID)
 async def self(interaction: discord.Interaction):
     TeamCaptain = interaction.user
+    channel = interaction.channel
     x = TeamModal2()
     await interaction.response.send_modal(x)
     await TeamModal2.wait(x)
@@ -869,22 +870,22 @@ async def self(interaction: discord.Interaction):
     
     index = 0
     flag = 0
+    flag2 = 0
     with open('Teams.txt', 'r') as file:
         for line in file:
             index +=1
             if "Captain: "+ str(TeamCaptain) in line:
                 flag = 1
-                break
-            if "Team Name: "+ TeamName in line:
-                flag = 2
-                break
+            elif "Team Name: "+ TeamName in line:
+                flag2 = 1
     file.close
-    if flag == 1 and flag == 2:
-        await interaction.response.send_message(f"You are already listed as the Captain for {TeamName} in our database, consider altering your team instead.", ephemeral=True)
+    if flag == 1 and flag2 == 1:
+        await channel.send(f"You are already listed as the Captain for {TeamName} in our database, consider altering your team instead.", ephemeral=True)
     else:
         with open('Teams.txt', 'a') as file:
             file.writelines(f"Captain: {TeamCaptain}\nTeam Name: {TeamName}\nAverage Team Rank: {TeamRank}\nTeam Players: {TeamPlayers}\nTeam Subs: {TeamSubs}\n\n")
         file.close
+    
     
 @tree.command(name="role_test", guild= GUILD_ID)
 async def self(interaction: discord.Interaction):
