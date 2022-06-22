@@ -859,6 +859,14 @@ async def self(interaction: discord.Interaction, usertag: str):
 @tree.command(name="record_team_info", guild= GUILD_ID)
 async def self(interaction: discord.Interaction):
     TeamCaptain = interaction.user
+    x = TeamModal2()
+    await interaction.response.send_modal(x)
+    await TeamModal2.wait(x)
+    TeamName = x.children[0].view.TeamName.value
+    TeamPlayers = x.children[0].view.Players.value
+    TeamSubs = x.children[0].view.Subs.value
+    TeamRank = x.children[0].view.RankInfo.value
+    
     index = 0
     flag = 0
     with open('Teams.txt', 'r') as file:
@@ -867,19 +875,13 @@ async def self(interaction: discord.Interaction):
             if "Captain: "+ str(TeamCaptain) in line:
                 flag = 1
                 break
-            if "Team Name: "
+            if "Team Name: "+ TeamName in line:
+                flag = 2
+                break
     file.close
-    
-    if flag == 1:
-        await interaction.response.send_message("You are already listed as a Captain in our database, consider altering your team instead.", ephemeral=True)
+    if flag == 1 and flag == 2:
+        await interaction.response.send_message(f"You are already listed as the Captain for {TeamName} in our database, consider altering your team instead.", ephemeral=True)
     else:
-        x = TeamModal2()
-        await interaction.response.send_modal(x)
-        await TeamModal2.wait(x)
-        TeamName = x.children[0].view.TeamName.value
-        TeamPlayers = x.children[0].view.Players.value
-        TeamSubs = x.children[0].view.Subs.value
-        TeamRank = x.children[0].view.RankInfo.value
         with open('Teams.txt', 'a') as file:
             file.writelines(f"Captain: {TeamCaptain}\nTeam Name: {TeamName}\nAverage Team Rank: {TeamRank}\nTeam Players: {TeamPlayers}\nTeam Subs: {TeamSubs}\n\n")
         file.close
