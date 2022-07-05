@@ -2,7 +2,9 @@ from __future__ import print_function
 from cProfile import label
 from email import message
 from errno import EPERM
+from gettext import find
 import json
+from lib2to3.pytree import convert
 from msilib.schema import File, TextStyle
 from socket import timeout
 from tkinter import Button
@@ -14,6 +16,7 @@ from asyncio import sleep as s, wait
 # from webserver import keep_alive
 import discord
 from discord.ext import tasks, commands
+import discord.ext
 from discord import Intents
 from discord import app_commands
 from discord import colour
@@ -703,7 +706,7 @@ async def on_member_join(member):
         await botlog.send(embed=embed)
     await client.wait_until_ready()
 
-# Modal for showmatch test
+# Modal for showmatch test, sends info to Matches.txt
 class TeamModal(ui.Modal, title='Team Information'):
     TeamName = discord.ui.TextInput(label='Team Name', required=True)
     Players = discord.ui.TextInput(label= "Player IDs", default= "Master Nox#6330, Master Nox#6330, Master Nox#6330", required=True)
@@ -797,7 +800,7 @@ async def self(interaction: discord.Interaction, usertag: str):
     else:
         await author.send(f"Your opponent ({usertag}) has denied the match!")
 
-
+# Modal to gather team information.
 class TeamModal2(ui.Modal, title='Team Information'):
     TeamName = discord.ui.TextInput(label='Team Name', required=True)
     Players = discord.ui.TextInput(label= "Player IDs", default= "Master Nox#6330, Master Nox#6330, Master Nox#6330", required=True)
@@ -821,14 +824,13 @@ class TeamModal2(ui.Modal, title='Team Information'):
         # embed.add_field(name="**Average Rank**", value=f"{self.RankInfo}", inline=False)
         # embed.timestamp = datetime.now()
         
-        with open(f'./Matches.txt', 'a') as file:
-            file.writelines(f'{datetime.now()}, {self.TeamName}, {self.Players}, {self.Subs}, {self.RankInfo}\n')
-        file.close
+        # with open(f'./Matches.txt', 'a') as file:
+        #     file.writelines(f'{datetime.now()}, {self.TeamName}, {self.Players}, {self.Subs}, {self.RankInfo}\n')
+        # file.close
         
         await interaction.response.send_message("Please enter your team information.", ephemeral=True)
-        #await interaction.response.send_message("Your information has been recorded and sent as follows.",embed=embed, ephemeral=True)
 
-
+# Modal class to edit already existing team info.
 class TeamInfoEdit(ui.Modal, title='Edit Team Information'):
     
     
@@ -872,16 +874,16 @@ class TeamInfoEdit(ui.Modal, title='Edit Team Information'):
         
         await interaction.response.send_message("Your team information has been updated.", ephemeral=True)
 
-
-class listview(discord.ui.View):
+# Attatchement Class.
+class TeamEditView(discord.ui.View):
     def __init__(self):
         super().__init__()
 
         # Adds the dropdown to our view object.
-        self.add_item(listview2())
+        self.add_item(TeamEditView2())
 
-
-class listview2(discord.ui.Select):
+# Dropdown view for teams that the author is the Captain of.
+class TeamEditView2(discord.ui.Select):
     def __init__(self):
         Teams = []
         with open('temp_teams_list.txt', 'r') as file:
@@ -904,31 +906,160 @@ class listview2(discord.ui.Select):
         await interaction.response.send_modal(x)
         await TeamInfoEdit.wait(x)
 
+# Attatchement Class.
+class MatchView(discord.ui.View):
+    def __init__(self):
+        super().__init__()
 
-@tree.command(name="showmatch_test2", description="Now using google forms!", guild= GUILD_ID)
-async def self(interaction: discord.Interaction, usertag: str):
+        # Adds the dropdown to our view object.
+        self.add_item(MatchView2())
+
+# Dropdown view for teams that the author is the Captain of.
+class MatchView2(discord.ui.Select):
+    def __init__(self):
+        Teams = []
+        with open('temp_teams_list.txt', 'r') as file:
+            for line in file:
+                Team = line.rstrip()
+
+                Teams.append(Team)
+        file.close
+        options = [
+            discord.SelectOption(label=key)
+            for key in Teams
+        ]
+        super().__init__(placeholder='Choose a team..', min_values=1, max_values=1, options=options)
+    async def callback(self, interaction: discord.Interaction):
+        with open('temp_match_request.txt', 'w') as file:
+            file.write(f'{self.values[0]}')
+        file.close()
+        
+        with open('temp_author.txt', 'r') as file:
+            author = file.read()
+        file.close
+        
+        Teams = []
+        flag2 = 0
+
+        with open('Teams.txt', 'r') as file:
+            for line in file:
+                if line.startswith("Captain: "):
+                    if f"{author}" in line:
+                        flag2 = 0
+                    else:
+                        flag2 = 1
+                if flag2 == 1:
+                    TeamName = str(file.readline())
+                    TeamName = TeamName.replace("Team Name: ", "")
+                    TeamName = TeamName.rstrip("\n")
+                    Teams.append(TeamName)
+                    flag2 = 0
+        file.close()
+                
+        with open('temp_match_request2.txt', 'w') as file:
+            file.writelines(Teams)
+        file.close
+        
+        view = OpponentMatchView()
+        
+        await interaction.response.send_message(f"Potential Opponents: {str(Teams)}", view= view )
+
+
+class OpponentMatchView(discord.ui.View):
+    def __init__(self):
+        super().__init__()
+
+        # Adds the dropdown to our view object.
+        self.add_item(OpponentMatchView2())
+
+class OpponentMatchView2(discord.ui.Select):
+    def __init__(self):
+        Teams = []
+        with open('temp_match_request2.txt', 'r') as file:
+            for line in file:
+                Team = line.rstrip()
+
+                Teams.append(Team)
+        file.close
+        options = [
+            discord.SelectOption(label=key)
+            for key in Teams
+        ]
+        super().__init__(placeholder='Choose a team..', min_values=1, max_values=1, options=options)
+    async def callback(self, interaction: discord.Interaction):
+        index = 0
+        
+        with open('Teams.txt', 'r') as file:
+            data = file.readlines()
+        file.close()
+        
+        with open('Teams.txt', 'r') as file:
+            for line in file:
+                index +=1
+                if line == f'Team Name: {self.values[0]}\n':
+                    break
+        file.close()
+        
+        Captain = data[index-2]
+        Captain = Captain.replace("Captain: ", "")
+        Captain = Captain.rstrip()
+        
+        # Testing purposes only.
+        Captain = "Master Nox#6330"
+        
+        Server = await client.fetch_guild(980108559226380318)
+        
+        print(Captain)
+        Captain = await discord.guild.Guild.get_member_named(Server, Captain)
+        print(Captain)
+        
+        await Captain.send('Match Request.')
+        
+        await interaction.response.send_message(f"Your match request has been sent to the captain of {self.values[0]}.")
+
+
+@tree.command(name="match_request", description="Updated Showmatch.", guild= GUILD_ID)
+async def self(interaction: discord.Interaction):
     author = interaction.user
-    user = usertag.removeprefix('<@!')
-    user = user.removesuffix('>')
-    user = int(user)
-    user = await client.fetch_user(user)
-    x = TeamModal2()
-    await interaction.response.send_modal(x)
-    await TeamModal2.wait(x)
-    TeamName1 = x.children[0].view.TeamName.value
-    Team1Players = x.children[0].view.Players.value
-    Team1Subs = x.children[0].view.Subs.value
-    Team1Rank = x.children[0].view.RankInfo.value
+    with open('temp_author.txt', 'w') as file:
+        file.write(str(author))
+    file.close()
     
-    y = TeamModal2()
-    await user.send_modal(y)
-    await TeamModal2.wait(y)
+    # user = usertag.removeprefix('<@!')
+    # user = user.removesuffix('>')
+    # user = int(user)
+    # user = await client.fetch_user(user)
     
+    Teams = []
+    flag = 0
+    index = 0
+    with open('Teams.txt', 'r') as file:
+        for line in file:
+            index +=1
+            if "Captain: "+ str(author) in line:
+                flag = 1
+                flag2 = 1
+            if flag2 == 1:
+                TeamName = str(file.readline())
+                TeamName = TeamName.replace("Team Name: ", "")
+                TeamName = TeamName.rstrip("\n")
+                Teams.append(TeamName)
+                flag2 = 0
+    file.close()
+    with open('temp_teams_list.txt', 'w') as file:
+        for Team in Teams:
+            file.write(f"{Team}\n")
+    file.close
     
+    view = MatchView()
     
+    if flag == 0:
+        await interaction.response.send_message("You are not listed as a captain for any of the teams in our database.")
+    elif flag == 1:
+        await interaction.response.send_message("Please select your team.", view = view)
     
-    conn = http.client.HTTPSConnection('eor82olfyhrllj.m.pipedream.net')
-    conn.request("POST", "/", '{"Team Name": "'+TeamName1+'", {""}}', {'Content-Type': 'application/json'})
+    #conn = http.client.HTTPSConnection('eor82olfyhrllj.m.pipedream.net')
+    #conn.request("POST", "/", '{"Team Name": "'+TeamName1+'", {""}}', {'Content-Type': 'application/json'})
     
     
 @tree.command(name="edit_team_info", guild= GUILD_ID)
@@ -962,7 +1093,7 @@ async def self(interaction:discord.Interaction):
     if flag == 0:
         await interaction.response.send_message("You are not listed as a captain for any of the teams in our database.")
     elif flag == 1:
-        await interaction.response.send_message("doot", view = listview())
+        await interaction.response.send_message("Please select the team you'd lke to edit.", view = TeamEditView())
     
     
 @tree.command(name="record_team_info", guild= GUILD_ID)
