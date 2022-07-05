@@ -1,12 +1,24 @@
 Captain: Master Nox#6330
-Team Name: Blue Team
-Average Team Rank: 9001
+Team Name: Team 1
 Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
 Team Subs: BluBlazing#7777, BluBlazing#7777, BluBlazing#7777
+Average Team Rank: 1000
 
 Captain: Master Nox#6330
-Team Name: Red Team
-Average Team Rank: 0
+Team Name: Team 2
 Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
 Team Subs: BluBlazing#7777, BluBlazing#7777, BluBlazing#7777
+Average Team Rank: 2000
+
+Captain: Master Nox#6330
+Team Name: Team Number 3.1
+Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
+Team Subs: BluBlazing#7777, BluBlazing#7777, BluBlazing#7777
+Average Team Rank: 3100
+
+Captain: Master Nox#6330
+Team Name: Doot 69
+Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
+Team Subs: BluBlazing#7777, BluBlazing#7777, BluBlazing#7777
+Average Team Rank: 6900
 

@@ -10,7 +10,7 @@ import requests
 from requests_oauthlib import OAuth1Session
 import os
 from datetime import datetime, timedelta
-from asyncio import sleep as s
+from asyncio import sleep as s, wait
 # from webserver import keep_alive
 import discord
 from discord.ext import tasks, commands
@@ -797,39 +797,113 @@ async def self(interaction: discord.Interaction, usertag: str):
     else:
         await author.send(f"Your opponent ({usertag}) has denied the match!")
 
+
 class TeamModal2(ui.Modal, title='Team Information'):
     TeamName = discord.ui.TextInput(label='Team Name', required=True)
     Players = discord.ui.TextInput(label= "Player IDs", default= "Master Nox#6330, Master Nox#6330, Master Nox#6330", required=True)
-    #Player1 = discord.ui.TextInput(label= "Player 1 ID", default= "Master Nox#6330", required=True)
-    #Player2 = discord.ui.TextInput(label= "Player 2 ID", default= "BluBlazing#7777", required=True)
-    #Player3 = discord.ui.TextInput(label= "Player 3 ID", default= "Planet#9951", required=True)
     Subs = discord.ui.TextInput(label= "Sub IDs", default= "BluBlazing#7777, BluBlazing#7777, BluBlazing#7777", required=True)
-    #Subs = discord.ui.Select(options=[discord.SelectOption(label='Yes Subs'), discord.SelectOption(label='No Subs')])
     RankInfo = discord.ui.TextInput(label="Average Team Rank", default="0", required=True)
     
     async def on_submit(self, interaction):
-        author = interaction.user
-        embed = discord.Embed(
-            color=discord.Color.random(),
-            title=f"Match Request from {author}",
-            description=f"You've received a match request!\nPlease accept or deny after checking the details.")
-        try:
-            embed.set_thumbnail(url=f"{author.avatar.url}")
-        except:
-            embed.set_thumbnail(url='https://styles.redditmedia.com/t5_2qhk5/styles/communityIcon_v58lvj23zo551.jpg')
-            print(f'{author} did not have an avatar url.')
-        embed.add_field(name="**Team Name**", value=f"{self.TeamName}", inline=False)
-        embed.add_field(name=f"**Players**", value=f"{self.Players}", inline=True)
-        embed.add_field(name=f"**Subs**", value=f"{self.Subs}", inline=True)
-        embed.add_field(name="**Average Rank**", value=f"{self.RankInfo}", inline=False)
-        embed.timestamp = datetime.now()
+        # author = interaction.user
+        # embed = discord.Embed(
+        #     color=discord.Color.random(),
+        #     title=f"Match Request from {author}",
+        #     description=f"You've received a match request!\nPlease accept or deny after checking the details.")
+        # try:
+        #     embed.set_thumbnail(url=f"{author.avatar.url}")
+        # except:
+        #     embed.set_thumbnail(url='https://styles.redditmedia.com/t5_2qhk5/styles/communityIcon_v58lvj23zo551.jpg')
+        #     print(f'{author} did not have an avatar url.')
+        # embed.add_field(name="**Team Name**", value=f"{self.TeamName}", inline=False)
+        # embed.add_field(name=f"**Players**", value=f"{self.Players}", inline=True)
+        # embed.add_field(name=f"**Subs**", value=f"{self.Subs}", inline=True)
+        # embed.add_field(name="**Average Rank**", value=f"{self.RankInfo}", inline=False)
+        # embed.timestamp = datetime.now()
         
         with open(f'./Matches.txt', 'a') as file:
             file.writelines(f'{datetime.now()}, {self.TeamName}, {self.Players}, {self.Subs}, {self.RankInfo}\n')
         file.close
         
-        await interaction.response.send_message("Your team data has been stored.", ephemeral=True)
+        await interaction.response.send_message("Please enter your team information.", ephemeral=True)
         #await interaction.response.send_message("Your information has been recorded and sent as follows.",embed=embed, ephemeral=True)
+
+
+class TeamInfoEdit(ui.Modal, title='Edit Team Information'):
+    
+    
+    
+    TeamName = discord.ui.TextInput(label='Team Name', required=True)
+    Players = discord.ui.TextInput(label= "Player IDs", default= "Master Nox#6330, Master Nox#6330, Master Nox#6330", required=True)
+    Subs = discord.ui.TextInput(label= "Sub IDs", default= "BluBlazing#7777, BluBlazing#7777, BluBlazing#7777", required=True)
+    RankInfo = discord.ui.TextInput(label="Average Team Rank", default="0", required=True)
+    
+    async def on_submit(self, interaction):
+        
+        with open('temp_teams_list.txt', 'r') as file:
+            team = file.read()
+        file.close()
+                
+        with open('temp_author.txt', 'r') as file:
+            author = file.read()
+        file.close()
+        index = -2
+        
+        with open('Teams.txt', 'r') as file:
+            data = file.readlines()
+        file.close()
+        
+        with open('Teams.txt', 'r') as file:
+            for line in file:
+                index +=1
+                if line == f'Team Name: {team}\n':
+                    break
+        file.close()
+        
+        data[index] = f'Captain: {author}\n'
+        data[index+1] = f'Team Name: {self.children[0].view.TeamName}\n'
+        data[index+2] = f'Team Players: {self.children[0].view.Players}\n'
+        data[index+3] = f'Team Subs: {self.children[0].view.Subs}\n'
+        data[index+4] = f'Average Team Rank: {self.children[0].view.RankInfo}\n'
+        
+        with open(f'Teams.txt', 'w') as file:
+            file.writelines(data)
+        file.close
+        
+        await interaction.response.send_message("Your team information has been updated.", ephemeral=True)
+
+
+class listview(discord.ui.View):
+    def __init__(self):
+        super().__init__()
+
+        # Adds the dropdown to our view object.
+        self.add_item(listview2())
+
+
+class listview2(discord.ui.Select):
+    def __init__(self):
+        Teams = []
+        with open('temp_teams_list.txt', 'r') as file:
+            for line in file:
+                Team = line.rstrip()
+
+                Teams.append(Team)
+        file.close
+        options = [
+            discord.SelectOption(label=key)
+            for key in Teams
+        ]
+        super().__init__(placeholder='Choose a team..', min_values=1, max_values=1, options=options)
+    async def callback(self, interaction: discord.Interaction):
+        with open('temp_teams_list.txt', 'w') as file:
+            file.write(f'{self.values[0]}')
+        file.close()
+                
+        x = TeamInfoEdit()
+        await interaction.response.send_modal(x)
+        await TeamInfoEdit.wait(x)
+
 
 @tree.command(name="showmatch_test2", description="Now using google forms!", guild= GUILD_ID)
 async def self(interaction: discord.Interaction, usertag: str):
@@ -856,6 +930,41 @@ async def self(interaction: discord.Interaction, usertag: str):
     conn = http.client.HTTPSConnection('eor82olfyhrllj.m.pipedream.net')
     conn.request("POST", "/", '{"Team Name": "'+TeamName1+'", {""}}', {'Content-Type': 'application/json'})
     
+    
+@tree.command(name="edit_team_info", guild= GUILD_ID)
+async def self(interaction:discord.Interaction):
+    author = interaction.user
+    with open('temp_author.txt', 'w') as file:
+        file.write(str(author))
+    file.close()
+    
+    channel = interaction.channel
+    Teams = []
+    flag = 0
+    index = 0
+    with open('Teams.txt', 'r') as file:
+        for line in file:
+            index +=1
+            if "Captain: "+ str(author) in line:
+                flag = 1
+                flag2 = 1
+            if flag2 == 1:
+                TeamName = str(file.readline())
+                TeamName = TeamName.replace("Team Name: ", "")
+                TeamName = TeamName.rstrip("\n")
+                Teams.append(TeamName)
+                flag2 = 0
+    file.close()
+    with open('temp_teams_list.txt', 'w') as file:
+        for Team in Teams:
+            file.write(f"{Team}\n")
+    file.close
+    if flag == 0:
+        await interaction.response.send_message("You are not listed as a captain for any of the teams in our database.")
+    elif flag == 1:
+        await interaction.response.send_message("doot", view = listview())
+    
+    
 @tree.command(name="record_team_info", guild= GUILD_ID)
 async def self(interaction: discord.Interaction):
     TeamCaptain = interaction.user
@@ -880,11 +989,12 @@ async def self(interaction: discord.Interaction):
                 flag2 = 1
     file.close
     if flag == 1 and flag2 == 1:
-        await channel.send(f"You are already listed as the Captain for {TeamName} in our database, consider altering your team instead.", ephemeral=True)
+        await channel.send(f"You are already listed as the Captain for {TeamName} in our database, consider /edit_team_info instead.")
     else:
         with open('Teams.txt', 'a') as file:
-            file.writelines(f"Captain: {TeamCaptain}\nTeam Name: {TeamName}\nAverage Team Rank: {TeamRank}\nTeam Players: {TeamPlayers}\nTeam Subs: {TeamSubs}\n\n")
+            file.writelines(f"Captain: {TeamCaptain}\nTeam Name: {TeamName}\nTeam Players: {TeamPlayers}\nTeam Subs: {TeamSubs}\nAverage Team Rank: {TeamRank}\n\n")
         file.close
+        await channel.send(f"Info for {TeamName} has been recorded.")
     
     
 @tree.command(name="role_test", guild= GUILD_ID)
