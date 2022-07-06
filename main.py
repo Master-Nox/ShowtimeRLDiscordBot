@@ -750,7 +750,7 @@ class TeamModal(ui.Modal, title='Team Information'):
         
         with open(f'./Matches.txt', 'a') as file:
             file.writelines(f'{datetime.now()}, {self.TeamName}, {self.Players}, {self.Subs}, {self.RankInfo}\n')
-        file.close
+        file.close()
         
         await interaction.response.send_message("Your information has been recorded and sent as follows.",embed=embed, ephemeral=True)
 
@@ -906,7 +906,7 @@ class TeamInfoEdit(ui.Modal, title='Edit Team Information'):
         
         with open(f'Teams.txt', 'w') as file:
             file.writelines(data)
-        file.close
+        file.close()
         
         await interaction.response.send_message(f"Team **{self.children[0].view.TeamName}** has been updated.", ephemeral=True)
 
@@ -927,7 +927,7 @@ class TeamEditView2(discord.ui.Select):
                 Team = line.rstrip()
 
                 Teams.append(Team)
-        file.close
+        file.close()
         options = [
             discord.SelectOption(label=key)
             for key in Teams
@@ -959,7 +959,7 @@ class MatchView2(discord.ui.Select):
                 Team = line.rstrip()
 
                 Teams.append(Team)
-        file.close
+        file.close()
         options = [
             discord.SelectOption(label=key)
             for key in Teams
@@ -972,7 +972,7 @@ class MatchView2(discord.ui.Select):
         
         with open('temp_author.txt', 'r') as file:
             authordata = file.readlines()
-        file.close
+        file.close()
         
         author = authordata[0]
         authorid = int(authordata[1])
@@ -999,7 +999,7 @@ class MatchView2(discord.ui.Select):
         
         with open('temp_match_request2.txt', 'w') as file:
             file.writelines(Teams)
-        file.close
+        file.close()
         
         view = OpponentMatchView()
         
@@ -1022,7 +1022,7 @@ class OpponentMatchView2(discord.ui.Select):
                 Team = line.rstrip()
 
                 Teams.append(Team)
-        file.close
+        file.close()
         options = [
             discord.SelectOption(label=key)
             for key in Teams
@@ -1033,7 +1033,7 @@ class OpponentMatchView2(discord.ui.Select):
         
         with open('temp_author.txt', 'r') as file:
             authordata = file.readlines()
-        file.close
+        file.close()
         
         author = authordata[0]
         authorid = int(authordata[1])
@@ -1090,7 +1090,7 @@ class OpponentMatchView2(discord.ui.Select):
         await ConfirmDeny.wait(view)
         
         conn = http.client.HTTPSConnection('eor82olfyhrllj.m.pipedream.net')
-        conn.request("POST", "/", '{"Information": "'+TeamName+'"}', {'Content-Type': 'application/json'})
+        conn.request("POST", "/", '{"Title": "'+TeamName+'"}', {'Content-Type': 'application/json'})
         
         if view.children[0].view.confirm.view.value == "✔️":
             await Author.send(f"Your opponent {Captain} has accepted the match!")
@@ -1113,7 +1113,7 @@ class DeleteTeamView2(discord.ui.Select):
                 Team = line.rstrip()
 
                 Teams.append(Team)
-        file.close
+        file.close()
         options = [
             discord.SelectOption(label=key)
             for key in Teams
@@ -1122,7 +1122,7 @@ class DeleteTeamView2(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction):
         with open('temp_author.txt', 'r') as file:
             authordata = file.readlines()
-        file.close
+        file.close()
         
         authorid = authordata[1]
         
@@ -1142,7 +1142,7 @@ class DeleteTeamView2(discord.ui.Select):
             
             with open('Teams.txt', 'r') as file:
                 data = file.readlines()
-            file.close
+            file.close()
             
             with open('Teams.txt', 'r') as file:
                 for line in file:
@@ -1163,7 +1163,7 @@ class DeleteTeamView2(discord.ui.Select):
 
                 with open('Teams.txt', 'w') as file:
                     file.writelines(data)
-                file.close
+                file.close()
                 await Captain.send(f"Team **{self.values[0]}** has been deleted.")
             else:
                 await Captain.send('Something went wrong. Contact Master Nox#6330 if the problem persists.')
@@ -1199,7 +1199,7 @@ async def self(interaction: discord.Interaction):
     with open('temp_teams_list.txt', 'w') as file:
         for Team in Teams:
             file.write(f"{Team}\n")
-    file.close
+    file.close()
     
     view = MatchView()
     
@@ -1239,7 +1239,7 @@ async def self(interaction:discord.Interaction):
     with open('temp_teams_list.txt', 'w') as file:
         for Team in Teams:
             file.write(f"{Team}\n")
-    file.close
+    file.close()
     if flag == 0:
         await interaction.response.send_message("You are not listed as a captain for any of the teams in our database.", ephemeral=True)
     elif flag == 1:
@@ -1268,13 +1268,13 @@ async def self(interaction: discord.Interaction):
                 flag = 1
             elif "Team Name: "+ TeamName in line:
                 flag2 = 1
-    file.close
+    file.close()
     if flag == 1 and flag2 == 1:
         await interaction.response.send_message(f"You are already listed as the Captain for **{TeamName}** in our database, consider /edit_team instead.", ephemeral=True)
     else:
         with open('Teams.txt', 'a') as file:
             file.writelines(f"Captain: {TeamCaptain}\nCaptain ID: {CaptainID}\nTeam Name: {TeamName}\nTeam Players: {TeamPlayers}\nTeam Subs: {TeamSubs}\nAverage Team Rank: {TeamRank}\n\n")
-        file.close
+        file.close()
         await interaction.followup.send(f"Info for **{TeamName}** has been recorded.", ephemeral=True)
     
 @tree.command(name='delete_team', guild= GUILD_ID)
@@ -1285,7 +1285,7 @@ async def self(interaction: discord.Interaction):
     with open('temp_author.txt', 'w') as file:
         file.write(str(TeamCaptain))
         file.write(f'\n{CaptainID}')
-    file.close
+    file.close()
     
     Teams = []
     flag = 0
@@ -1307,7 +1307,7 @@ async def self(interaction: discord.Interaction):
     with open('temp_teams_list.txt', 'w') as file:
         for Team in Teams:
             file.write(f"{Team}\n")
-    file.close
+    file.close()
     
     view = DeleteTeamView()
     
