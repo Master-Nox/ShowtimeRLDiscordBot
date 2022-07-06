@@ -1,24 +1,21 @@
 Captain: Master Nox#6330
-Team Name: Team 1
+Captain ID: 208383176781856768
+Team Name: Master Nox's Team
 Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
 Team Subs: BluBlazing#7777, BluBlazing#7777, BluBlazing#7777
-Average Team Rank: 1000
+Average Team Rank: 9999999999
+
+Captain: Master Lux#1410
+Captain ID: 980228849235288076
+Team Name: Lux
+Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
+Team Subs: BluBlazing#7777, BluBlazing#7777, BluBlazing#7777
+Average Team Rank: 0
 
 Captain: Master Nox#6330
-Team Name: Team 2
+Captain ID: 208383176781856768
+Team Name: Team 3
 Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
 Team Subs: BluBlazing#7777, BluBlazing#7777, BluBlazing#7777
-Average Team Rank: 2000
-
-Captain: Master Nox#6330
-Team Name: Team Number 3.1
-Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
-Team Subs: BluBlazing#7777, BluBlazing#7777, BluBlazing#7777
-Average Team Rank: 3100
-
-Captain: Not Master Nox#5547
-Team Name: Doot 69
-Team Players: Master Nox#4457
-Team Subs: BluBlazing#7777, BluBlazing#7777, BluBlazing#7777
-Average Team Rank: 6900
+Average Team Rank: 3
 
