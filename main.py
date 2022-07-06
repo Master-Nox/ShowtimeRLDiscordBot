@@ -4,6 +4,7 @@ from email import message
 from errno import EPERM
 from gettext import find
 import json
+import requests
 from lib2to3.pytree import convert
 from msilib.schema import File, TextStyle
 from socket import timeout
@@ -1029,6 +1030,8 @@ class OpponentMatchView2(discord.ui.Select):
         ]
         super().__init__(placeholder='Choose a team..', min_values=1, max_values=1, options=options)
     async def callback(self, interaction: discord.Interaction):
+        
+        
         index = 0
         
         with open('temp_author.txt', 'r') as file:
@@ -1042,14 +1045,26 @@ class OpponentMatchView2(discord.ui.Select):
             data = file.readlines()
         file.close()
         
+        with open('temp_match_request.txt', 'r') as file:
+            TeamtoSend = file.read()
+        file.close()
+        
         with open('Teams.txt', 'r') as file:
             for line in file:
                 index +=1
+                if line == f'Team Name: {TeamtoSend}\n':
+                    break
+        file.close()
+        
+        index2 = 0
+        with open('Teams.txt', 'r') as file:
+            for line in file:
+                index2 +=1
                 if line == f'Team Name: {self.values[0]}\n':
                     break
         file.close()
         
-        Captain = data[index-2]
+        Captain = data[index2-2]
         Captain = Captain.replace("Captain ID: ", "")
         Captain = Captain.rstrip()
         
@@ -1076,21 +1091,37 @@ class OpponentMatchView2(discord.ui.Select):
             embed.set_thumbnail(url=f"{Author.avatar.url}")
         except:
             embed.set_thumbnail(url='https://styles.redditmedia.com/t5_2qhk5/styles/communityIcon_v58lvj23zo551.jpg')
-            print(f'{Author} did not have an avatar url.')
+            #print(f'{Author} did not have an avatar url.')
         embed.add_field(name="**Team Name**", value=f"{TeamName}", inline=False)
         embed.add_field(name=f"**Players**", value=f"{TeamPlayers}", inline=True)
         embed.add_field(name=f"**Subs**", value=f"{TeamSubs}", inline=True)
         embed.add_field(name="**Average Rank**", value=f"{TeamRank}", inline=False)
         embed.timestamp = datetime.now()
         
-        await interaction.response.send_message(f"Your match request has been sent to the captain of {self.values[0]}.", ephemeral=True)
+        await interaction.response.send_message(f"Your match request has been sent to the captain of **{self.values[0]}**.", ephemeral=True)
         
         view = ConfirmDeny()
         await Captain.send(embed=embed, view=view)
         await ConfirmDeny.wait(view)
         
-        conn = http.client.HTTPSConnection('eor82olfyhrllj.m.pipedream.net')
-        conn.request("POST", "/", '{"Title": "'+TeamName+'"}', {'Content-Type': 'application/json'})
+        Title = TeamName + " VS. " + str(self.values[0])
+        Date = '2022-07-08'
+        
+        # body = {
+        #     "Title": Title,
+        #     "Date": Date
+        # }
+        
+        # conn = http.client.HTTPSConnection('eor82olfyhrllj.m.pipedream.net')
+        # #conn.request("POST", "/", '{"Title": "'+Title+'"}', {'Content-Type': 'application/json'})
+        # conn.request({'Content-Type': 'multipart/form-data'}, url="/", body= body)
+        
+        payload = { 'Title': Title,
+            'Date': Date}
+        session = requests.Session()
+        session.post('https://eor82olfyhrllj.m.pipedream.net',data=payload)
+
+        
         
         if view.children[0].view.confirm.view.value == "✔️":
             await Author.send(f"Your opponent {Captain} has accepted the match!")
@@ -1220,6 +1251,7 @@ async def self(interaction:discord.Interaction):
     channel = interaction.channel
     Teams = []
     flag = 0
+    flag2 = 0
     index = 0
     with open('Teams.txt', 'r') as file:
         for line in file:

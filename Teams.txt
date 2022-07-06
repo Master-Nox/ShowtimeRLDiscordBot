@@ -8,14 +8,14 @@ Average Team Rank: 9999999999
 Captain: Master Lux#1410
 Captain ID: 980228849235288076
 Team Name: Lux
-Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
+Team Players: None
+Team Subs: None
+Average Team Rank: 404
+
+Captain: BluBlazing#7777
+Captain ID: 209906645742911488
+Team Name: Nox's Bigger Puppies
+Team Players: Master Nox#6331, Master Nox#6330, Master Nox#6330
 Team Subs: BluBlazing#7777, BluBlazing#7777, BluBlazing#7777
 Average Team Rank: 0
-
-Captain: Master Nox#6330
-Captain ID: 208383176781856768
-Team Name: Team 3
-Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
-Team Subs: BluBlazing#7777, BluBlazing#7777, BluBlazing#7777
-Average Team Rank: 3
 
