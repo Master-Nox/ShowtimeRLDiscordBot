@@ -1,10 +1,3 @@
-Captain: Master Nox#6330
-Captain ID: 208383176781856768
-Team Name: Master Nox's Team
-Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
-Team Subs: BluBlazing#7777, BluBlazing#7777, BluBlazing#7777
-Average Team Rank: 9999999999
-
 Captain: Master Lux#1410
 Captain ID: 980228849235288076
 Team Name: Lux
@@ -18,4 +11,67 @@ Team Name: Nox's Bigger Puppies
 Team Players: Master Nox#6331, Master Nox#6330, Master Nox#6330
 Team Subs: BluBlazing#7777, BluBlazing#7777, BluBlazing#7777
 Average Team Rank: 0
+
+Captain: Master Nox#6330
+Captain ID: 208383176781856768
+Team Name: Test Team to fill out 
+Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
+Team Subs: no
+Average Team Rank: 14
+
+Captain: Master Nox#6330
+Captain ID: 208383176781856768
+Team Name: Test Team to fill out t
+Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
+Team Subs: no
+Average Team Rank: 14
+
+Captain: Master Nox#6330
+Captain ID: 208383176781856768
+Team Name: Test Team to fill out th
+Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
+Team Subs: no
+Average Team Rank: 14
+
+Captain: Master Nox#6330
+Captain ID: 208383176781856768
+Team Name: Test Team to fill out thi
+Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
+Team Subs: no
+Average Team Rank: 14
+
+Captain: Master Nox#6330
+Captain ID: 208383176781856768
+Team Name: Test Team to fill out this
+Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
+Team Subs: no
+Average Team Rank: 14
+
+Captain: Master Nox#6330
+Captain ID: 208383176781856768
+Team Name: Test Team to fill out this 
+Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
+Team Subs: no
+Average Team Rank: 14
+
+Captain: Master Nox#6330
+Captain ID: 208383176781856768
+Team Name: Test Team to fill out this l
+Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
+Team Subs: no
+Average Team Rank: 14
+
+Captain: Master Nox#6330
+Captain ID: 208383176781856768
+Team Name: Test Team to fill out this li
+Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
+Team Subs: no
+Average Team Rank: 14
+
+Captain: Master Nox#6330
+Captain ID: 208383176781856768
+Team Name: Test Team to fill out this lis
+Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
+Team Subs: no
+Average Team Rank: 14
 
