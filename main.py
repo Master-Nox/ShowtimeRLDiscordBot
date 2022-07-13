@@ -20,7 +20,7 @@ from asyncio import sleep as s, wait
 import discord
 from discord.ext import tasks, commands, menus
 import discord.ext
-from discord import Intents, InteractionMessage, Message, Reaction
+from discord import Intents, InteractionMessage, InteractionResponse, Message, Reaction
 from discord import app_commands
 from discord import colour
 from discord import Streaming
@@ -510,6 +510,19 @@ class ChannelDropdown(discord.ui.Select):
                 if str(channel.type) == 'text':
                     text_channel_name_list.append(channel.name)
                     text_channel_id_list.append(channel.id)
+                    
+        #TESTING PURPOSES ONLY
+        i =0
+        while len(text_channel_name_list) < 25:
+            i+=1
+            text_channel_name_list.append(f'{i}')
+        
+        print(text_channel_name_list)
+        
+        if len(text_channel_name_list) > 10:
+            text_channel_name_list[11] = "[Next Page]"
+            del text_channel_name_list[12:]
+            
         options = [
             discord.SelectOption(label=key)
             for key in text_channel_name_list
@@ -527,20 +540,91 @@ class ChannelDropdown(discord.ui.Select):
         # the user's favourite colour or choice. The self object refers to the
         # Select object, and the values attribute gets a list of the user's
         # selected options. We only want the first one.
+        if self.values[0] != '[Next Page]':
+            id = text_channel_id_list[text_channel_name_list.index(self.values[0])]
+            await change_channel(self, id)
+            await interaction.response.send_message(f"You chose <#{id}>\nThe Bot is now updated.")
+            
+            botid = int(get_channel(0))
+            botchannel = client.get_channel(botid)
+            
+            with open('temp_function.txt', 'r') as file:
+                chosen_function = file.read()
+            file.close()
+            
+            await botchannel.send(f"{interaction.user.mention} changed the {chosen_function} to <#{id}>")
+        else:
+            view = ChannelDropDownExtendedView(PageNumber=2)
+            with open('temp_function.txt', 'r') as file:
+                function = file.read()
+            file.close()
+            await interaction.response.edit_message(content=f"You chose the **{function}** function.\nNow choose which channel you'd like to attach it to.", view=view)
+
+class ChannelDropdownExtended(discord.ui.Select):
+    def __init__(self, PageNumber):
+        self.PageNumber = PageNumber
+        text_channel_name_list = []
+        text_channel_id_list = []
+        for guild in client.guilds:
+            for channel in guild.channels:
+                if str(channel.type) == 'text':
+                    text_channel_name_list.append(channel.name)
+                    text_channel_id_list.append(channel.id)
+                    
+        #TESTING PURPOSES ONLY
+        i = 0
+        while len(text_channel_name_list) < 25:
+            i+=1
+            text_channel_name_list.append(f'{i}')
         
-        id = text_channel_id_list[text_channel_name_list.index(self.values[0])]
-        await change_channel(self, id)
-        await interaction.response.send_message(f"You chose <#{id}>\nThe Bot is now updated.")
+        print(text_channel_name_list)
         
-        botid = int(get_channel(0))
-        botchannel = client.get_channel(botid)
+        Listings = 10*self.PageNumber+1
+        try:
+            text_channel_name_list[Listings] = "[Next Page]"
+            del text_channel_name_list[Listings+1:]
+            del text_channel_name_list[0:Listings-11]
+        except:
+            end = len(text_channel_name_list)
+            del text_channel_name_list[0:end-11]
         
-        with open('temp_function.txt', 'r') as file:
-            chosen_function = file.read()
-        file.close()
-        
-        await botchannel.send(f"{interaction.user.mention} changed the {chosen_function} to <#{id}>")
-        
+        options = [
+            discord.SelectOption(label=key)
+            for key in text_channel_name_list
+        ]
+        super().__init__(placeholder='Choose a channel..', min_values=1, max_values=1, options=options)
+    async def callback(self, interaction: discord.Interaction):
+        text_channel_name_list = []
+        text_channel_id_list = []
+        for guild in client.guilds:
+            for channel in guild.channels:
+                if str(channel.type) == 'text':
+                    text_channel_id_list.append(channel.id)
+                    text_channel_name_list.append(channel.name)
+        # Use the interaction object to send a response message containing
+        # the user's favourite colour or choice. The self object refers to the
+        # Select object, and the values attribute gets a list of the user's
+        # selected options. We only want the first one.
+        if self.values[0] != '[Next Page]':
+            id = text_channel_id_list[text_channel_name_list.index(self.values[0])]
+            await change_channel(self, id)
+            await interaction.response.send_message(f"You chose <#{id}>\nThe Bot is now updated.")
+            
+            botid = int(get_channel(0))
+            botchannel = client.get_channel(botid)
+            
+            with open('temp_function.txt', 'r') as file:
+                chosen_function = file.read()
+            file.close()
+            
+            await botchannel.send(f"{interaction.user.mention} changed the {chosen_function} to <#{id}>")
+        else:
+            view = ChannelDropDownExtendedView(self.PageNumber+1)
+            with open('temp_function.txt', 'r') as file:
+                function = file.read()
+            file.close()
+            await interaction.response.edit_message(f"You chose the **{function}** function.\nNow choose which channel you'd like to attach it to.", view=view)
+
 # Used in /setchannel, has the info for the function select dropdown.
 class FunctionDropdown(discord.ui.Select):
     def __init__(self):
@@ -584,6 +668,14 @@ class ChannelDropdownView(discord.ui.View):
 
         # Adds the dropdown to our view object.
         self.add_item(ChannelDropdown())
+
+class ChannelDropDownExtendedView(discord.ui.View):
+    def __init__(self, PageNumber):
+        self.PageNumber = PageNumber
+        super().__init__()
+
+        # Adds the dropdown to our view object.
+        self.add_item(ChannelDropdownExtended(self.PageNumber))
 
 # Replaces the old set commands and combines them into 1 elegant solution.
 @tree.command(name="setchannel", description="Lets you set various channels.", guild= GUILD_ID)
@@ -965,7 +1057,7 @@ class MatchView2(discord.ui.Select):
         Teams = []
         with open('temp_teams_list.txt', 'r') as file:
             for line in file:
-                Team = line.rstrip()
+                Team = line.rstrip('\n')
 
                 Teams.append(Team)
         file.close()
@@ -985,6 +1077,7 @@ class MatchView2(discord.ui.Select):
         
         author = authordata[0]
         authorid = int(authordata[1])
+        enemycaptain = int(authordata[2])
         
         Teams = []
         flag2 = 0
@@ -992,10 +1085,10 @@ class MatchView2(discord.ui.Select):
         with open('Teams.txt', 'r') as file:
             for line in file:
                 if line.startswith("Captain ID: "):
-                    if f"{authorid}" in line:
-                        flag2 = 0
-                    else:
+                    if f"{enemycaptain}" in line:
                         flag2 = 1
+                    else:
+                        flag2 = 0
                 if flag2 == 1:
                     TeamName = str(file.readline())
                     TeamName = TeamName.replace("Team Name: ", "")
@@ -1014,14 +1107,12 @@ class MatchView2(discord.ui.Select):
         
         await interaction.response.send_message(f"Choose an opponent...", view= view, ephemeral=True)
 
-
 class OpponentMatchView(discord.ui.View):
     def __init__(self):
         super().__init__()
 
         # Adds the dropdown to our view object.
         self.add_item(OpponentMatchView2())
-
 
 class OpponentMatchView2(discord.ui.Select):
     def __init__(self):
@@ -1209,13 +1300,14 @@ class DeleteTeamView2(discord.ui.Select):
         else:
             await Captain.send(f"Deletion cancelled.")
         
-
 @tree.command(name="match_request", description="Updated Showmatch.", guild= GUILD_ID)
-async def self(interaction: discord.Interaction):
+async def self(interaction: discord.Interaction, enemy_captain: discord.user.User):
     author = interaction.user
+    enemy_captain = enemy_captain.id
     with open('temp_author.txt', 'w') as file:
         file.write(str(author))
         file.write(f'\n{author.id}')
+        file.write(f'\n{enemy_captain}')
     file.close()
     
     Teams = []
@@ -1356,7 +1448,7 @@ async def self(interaction: discord.Interaction):
     elif flag == 1:
         await interaction.response.send_message("Please select the team you wish to delete.", view = view, ephemeral=True)
     
-     
+# Page buttons are broken. They work but give a response failed error. Look into Fixing
 class Paginator(discord.ui.View):
     r"""A dynamic paginator that uses a callback to generate embeds.
     This should be passed in as a regular view to methods like
@@ -1377,11 +1469,13 @@ class Paginator(discord.ui.View):
     def __init__(self,
                  callback: Callable[[int], List[discord.Embed]],
                  pages: int,
+                 interaction: discord.Interaction,
                  **kwargs):
         super().__init__(**kwargs)
         self.pages = pages
         self.callback = callback
         self.page = 1
+        self.interaction = interaction
         self._update_buttons()
 
     def _update_buttons(self):
@@ -1397,18 +1491,21 @@ class Paginator(discord.ui.View):
         return self.callback(page)
 
     @discord.ui.button(label="previous")
-    async def prev_button(self, _, interaction):
+    async def prev_button(self, _, interaction: discord.Interaction):
         self.page = max(self.page - 1, 1)
         self._update_buttons()
         embs = self.callback(self.page)
-        await interaction.edit_original_message(embeds=embs, view=self)
+        await self.interaction.edit_original_message(embeds=embs, view=self)
+        print(type(interaction))
 
     @discord.ui.button(label="next")
-    async def next_button(self, _, interaction):
+    async def next_button(self, _, interaction: discord.Interaction):
         self.page = min(self.page + 1, self.pages)
         self._update_buttons()
         embs = self.callback(self.page)
-        await interaction(embeds=embs, view=self)
+        await self.interaction.edit_original_message(embeds=embs, view=self)
+        interaction.response.defer()
+        
      
 class StaticPaginator(Paginator):
     """A simple paginator that takes in lines instead of a callback.
@@ -1480,7 +1577,7 @@ async def self(interaction: discord.Interaction):
             Teams -=10
             TotalPages +=1
         except:
-            break
+            pass
 
     def embed_cat_page(page: int) -> List[discord.Embed]:
         display = page*10
@@ -1495,10 +1592,10 @@ async def self(interaction: discord.Interaction):
         embs.append(emb)
         return embs
 
-    view = Paginator(embed_cat_page, 10)
+    view = Paginator(embed_cat_page, TotalPages, interaction)
     embs = view.get_page(1)
     
-    message = await interaction.response.send_message(embeds=embs, view=view)
+    await interaction.response.send_message(embeds=embs, view=view)
     # The next page button doesn't work because its interaction links to nothing. I tried moving the edit message down here but failed. I have yet to find a way to move the interaction up to the paginator.
     
 @tree.command(name="role_test", guild= GUILD_ID)
