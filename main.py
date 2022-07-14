@@ -502,7 +502,8 @@ async def change_channel(self, chosen_channel):
     
 # Used in /setchannel, has the info for the channel select dropdown.
 class ChannelDropdown(discord.ui.Select):
-    def __init__(self):
+    def __init__(self, function):
+        self.function = function
         text_channel_name_list = []
         text_channel_id_list = []
         for guild in client.guilds:
@@ -510,14 +511,6 @@ class ChannelDropdown(discord.ui.Select):
                 if str(channel.type) == 'text':
                     text_channel_name_list.append(channel.name)
                     text_channel_id_list.append(channel.id)
-                    
-        #TESTING PURPOSES ONLY
-        i =0
-        while len(text_channel_name_list) < 25:
-            i+=1
-            text_channel_name_list.append(f'{i}')
-        
-        print(text_channel_name_list)
         
         if len(text_channel_name_list) > 10:
             text_channel_name_list[11] = "[Next Page]"
@@ -548,21 +541,22 @@ class ChannelDropdown(discord.ui.Select):
             botid = int(get_channel(0))
             botchannel = client.get_channel(botid)
             
-            with open('temp_function.txt', 'r') as file:
-                chosen_function = file.read()
-            file.close()
+            # with open('temp_function.txt', 'r') as file:
+            #     chosen_function = file.read()
+            # file.close()
             
-            await botchannel.send(f"{interaction.user.mention} changed the {chosen_function} to <#{id}>")
+            await botchannel.send(f"{interaction.user.mention} changed the {self.function} to <#{id}>")
         else:
-            view = ChannelDropDownExtendedView(PageNumber=2)
-            with open('temp_function.txt', 'r') as file:
-                function = file.read()
-            file.close()
-            await interaction.response.edit_message(content=f"You chose the **{function}** function.\nNow choose which channel you'd like to attach it to.", view=view)
+            view = ChannelDropDownExtendedView(PageNumber=2, function=self.function)
+            # with open('temp_function.txt', 'r') as file:
+            #     function = file.read()
+            # file.close()
+            await interaction.response.edit_message(content=f"You chose the **{self.function}** function.\nNow choose which channel you'd like to attach it to.", view=view)
 
 class ChannelDropdownExtended(discord.ui.Select):
-    def __init__(self, PageNumber):
+    def __init__(self, PageNumber, function):
         self.PageNumber = PageNumber
+        self.function = function
         text_channel_name_list = []
         text_channel_id_list = []
         for guild in client.guilds:
@@ -571,22 +565,15 @@ class ChannelDropdownExtended(discord.ui.Select):
                     text_channel_name_list.append(channel.name)
                     text_channel_id_list.append(channel.id)
                     
-        #TESTING PURPOSES ONLY
-        i = 0
-        while len(text_channel_name_list) < 25:
-            i+=1
-            text_channel_name_list.append(f'{i}')
         
-        print(text_channel_name_list)
-        
-        Listings = 10*self.PageNumber+1
+        Listings = 10*self.PageNumber
         try:
-            text_channel_name_list[Listings] = "[Next Page]"
-            del text_channel_name_list[Listings+1:]
-            del text_channel_name_list[0:Listings-11]
+            text_channel_name_list[Listings+1] = "[Next Page]"
+            del text_channel_name_list[Listings+2:]
+            del text_channel_name_list[0:Listings-9]
         except:
             end = len(text_channel_name_list)
-            del text_channel_name_list[0:end-11]
+            del text_channel_name_list[0:end-10]
         
         options = [
             discord.SelectOption(label=key)
@@ -613,17 +600,11 @@ class ChannelDropdownExtended(discord.ui.Select):
             botid = int(get_channel(0))
             botchannel = client.get_channel(botid)
             
-            with open('temp_function.txt', 'r') as file:
-                chosen_function = file.read()
-            file.close()
             
-            await botchannel.send(f"{interaction.user.mention} changed the {chosen_function} to <#{id}>")
+            await botchannel.send(f"{interaction.user.mention} changed the {self.function} to <#{id}>")
         else:
-            view = ChannelDropDownExtendedView(self.PageNumber+1)
-            with open('temp_function.txt', 'r') as file:
-                function = file.read()
-            file.close()
-            await interaction.response.edit_message(f"You chose the **{function}** function.\nNow choose which channel you'd like to attach it to.", view=view)
+            view = ChannelDropDownExtendedView(self.PageNumber+1, function= self.function)
+            await interaction.response.edit_message(content = f"You chose the **{self.function}** function.\nNow choose which channel you'd like to attach it to.", view=view)
 
 # Used in /setchannel, has the info for the function select dropdown.
 class FunctionDropdown(discord.ui.Select):
@@ -646,10 +627,11 @@ class FunctionDropdown(discord.ui.Select):
         # the user's favourite colour or choice. The self object refers to the
         # Select object, and the values attribute gets a list of the user's
         # selected options. We only want the first one.
-        view = ChannelDropdownView()
-        with open('temp_function.txt', 'w') as file:
-            file.writelines(self.values[0])
-        file.close()
+        view = ChannelDropdownView(function = self.values[0])
+        # view = ChannelDropdownView()
+        # with open('temp_function.txt', 'w') as file:
+        #     file.writelines(self.values[0])
+        # file.close()
         
         await interaction.response.send_message(f"You chose the **{self.values[0]}** function.\nNow choose which channel you'd like to attach it to.", view=view)
 
@@ -663,19 +645,18 @@ class FunctionDropdownView(discord.ui.View):
 
 # Creates the view for the Channel Dropdown.
 class ChannelDropdownView(discord.ui.View):
-    def __init__(self):
+    def __init__(self, function):
         super().__init__()
 
         # Adds the dropdown to our view object.
-        self.add_item(ChannelDropdown())
+        self.add_item(ChannelDropdown(function= function))
 
 class ChannelDropDownExtendedView(discord.ui.View):
-    def __init__(self, PageNumber):
-        self.PageNumber = PageNumber
+    def __init__(self, PageNumber, function):
         super().__init__()
 
         # Adds the dropdown to our view object.
-        self.add_item(ChannelDropdownExtended(self.PageNumber))
+        self.add_item(ChannelDropdownExtended(PageNumber, function))
 
 # Replaces the old set commands and combines them into 1 elegant solution.
 @tree.command(name="setchannel", description="Lets you set various channels.", guild= GUILD_ID)
@@ -690,7 +671,8 @@ async def self(interaction: discord.Interaction):
 
 # Used in /announce, contains the dropdown to select the proper channel.
 class AnnounceDropdown(discord.ui.Select):
-    def __init__(self):
+    def __init__(self, message):
+        self.message = message
         text_channel_name_list = []
         text_channel_id_list = []
         for guild in client.guilds:
@@ -698,6 +680,60 @@ class AnnounceDropdown(discord.ui.Select):
                 if str(channel.type) == 'text':
                     text_channel_name_list.append(channel.name)
                     text_channel_id_list.append(channel.id)
+                    
+        if len(text_channel_name_list) > 10:
+            text_channel_name_list[11] = "[Next Page]"
+            del text_channel_name_list[12:]
+                    
+        options = [
+            discord.SelectOption(label=key)
+            for key in text_channel_name_list
+        ]
+        super().__init__(placeholder='Choose a channel..', min_values=1, max_values=1, options=options)
+    async def callback(self, interaction: discord.Interaction):
+        text_channel_name_list = []
+        text_channel_id_list = []
+        for guild in client.guilds:
+            for channel in guild.channels:
+                if str(channel.type) == 'text':
+                    text_channel_id_list.append(channel.id)
+                    text_channel_name_list.append(channel.name)
+        
+        if self.values[0] != '[Next Page]':
+            id = text_channel_id_list[text_channel_name_list.index(self.values[0])]
+            Announcement_Channel = client.get_channel(id)
+            BotLog = client.get_channel(int(get_channel(0)))
+            
+            await interaction.response.send_message("Your message has been sent!", ephemeral=True)
+            await BotLog.send(f'{interaction.user.mention} sent the message "{self.message}" using the bot in <#{id}>')
+            await Announcement_Channel.send(f"{self.message}")
+        else:
+            view = AnnounceDropdownExtendedView(PageNumber=2, message=self.message)
+            await interaction.response.edit_message(content = f"What channel would you like to send a message to?", view=view)
+            
+          
+class AnnounceDropdownExtended(discord.ui.Select):
+    def __init__(self, PageNumber, message):
+        self.PageNumber = PageNumber
+        self.message = message
+        text_channel_name_list = []
+        text_channel_id_list = []
+        for guild in client.guilds:
+            for channel in guild.channels:
+                if str(channel.type) == 'text':
+                    text_channel_name_list.append(channel.name)
+                    text_channel_id_list.append(channel.id)
+                    
+        
+        Listings = 10*self.PageNumber
+        try:
+            text_channel_name_list[Listings+1] = "[Next Page]"
+            del text_channel_name_list[Listings+2:]
+            del text_channel_name_list[0:Listings-9]
+        except:
+            end = len(text_channel_name_list)
+            del text_channel_name_list[0:end-10]
+                
         options = [
             discord.SelectOption(label=key)
             for key in text_channel_name_list
@@ -715,35 +751,39 @@ class AnnounceDropdown(discord.ui.Select):
         # the user's favourite colour or choice. The self object refers to the
         # Select object, and the values attribute gets a list of the user's
         # selected options. We only want the first one.
-        
-        id = text_channel_id_list[text_channel_name_list.index(self.values[0])]
-        Announcement_Channel = client.get_channel(id)
-        BotLog = client.get_channel(int(get_channel(0)))
-        
-        with open('temp_announcement.txt', 'r') as file:
-            announcement = file.read()
-        file.close()
-        await interaction.response.send_message("Your message has been sent!", ephemeral=True)
-        await BotLog.send(f'{interaction.user.mention} sent the message "{announcement}" using the bot in <#{id}>')
-        await Announcement_Channel.send(f"{announcement}")
+        if self.values[0] != '[Next Page]':
+            id = text_channel_id_list[text_channel_name_list.index(self.values[0])]
+            Announcement_Channel = client.get_channel(id)
+            BotLog = client.get_channel(int(get_channel(0)))
+            
+            await interaction.response.send_message("Your message has been sent!", ephemeral=True)
+            await BotLog.send(f'{interaction.user.mention} sent the message "{self.message}" using the bot in <#{id}>')
+            await Announcement_Channel.send(f"{self.message}")
+        else:
+            view = AnnounceDropdownExtendedView(self.PageNumber+1, message = self.message)
+            await interaction.response.edit_message(content = f"What channel would you like to send a message to?", view=view)
         
 # Creates the view for the Announce Dropdown.
 class AnnounceDropdownView(discord.ui.View):
-    def __init__(self):
+    def __init__(self, message):
         super().__init__()
 
         # Adds the dropdown to our view object.
-        self.add_item(AnnounceDropdown())
+        self.add_item(AnnounceDropdown(message))
+        
+class AnnounceDropdownExtendedView(discord.ui.View):
+    def __init__(self, PageNumber, message):
+        super().__init__()
+
+        # Adds the dropdown to our view object.
+        self.add_item(AnnounceDropdownExtended(PageNumber, message))
 
 # Lets the user say things through the bot in a specified channel.
 @tree.command(name="say", description=f'Sends a message to the specified channel as the bot.', guild= GUILD_ID)
 async def self(interaction: discord.Interaction, message: str):
-    view= AnnounceDropdownView()
-    with open('temp_announcement.txt', 'w') as file:
-        file.writelines(message)
-    file.close()
+    view= AnnounceDropdownView(message)
         
-    await interaction.response.send_message("What channel would you like to send an announcement to?", view=view)
+    await interaction.response.send_message("What channel would you like to send a message to?", view=view, ephemeral=True)
     
 # Future help command!
 @tree.command(name="help", description=f'Sends the User a DM with command information.', guild= GUILD_ID)
@@ -848,10 +888,6 @@ class TeamModal(ui.Modal, title='Team Information'):
         embed.add_field(name=f"**Subs**", value=f"{self.Subs}", inline=True)
         embed.add_field(name="**Average Rank**", value=f"{self.RankInfo}", inline=False)
         embed.timestamp = datetime.now()
-        
-        with open(f'./Matches.txt', 'a') as file:
-            file.writelines(f'{datetime.now()}, {self.TeamName}, {self.Players}, {self.Subs}, {self.RankInfo}\n')
-        file.close()
         
         await interaction.response.send_message("Your information has been recorded and sent as follows.",embed=embed, ephemeral=True)
 
@@ -972,63 +1008,23 @@ class TeamInfoEdit(ui.Modal, title='Edit Team Information'):
     Players = discord.ui.TextInput(label= "Player IDs", default= "Master Nox#6330, Master Nox#6330, Master Nox#6330", required=True)
     Subs = discord.ui.TextInput(label= "Sub IDs", default= "BluBlazing#7777, BluBlazing#7777, BluBlazing#7777", required=True)
     RankInfo = discord.ui.TextInput(label="Average Team Rank", default="0", required=True)
-    
+        
     async def on_submit(self, interaction):
-        
-        with open('temp_teams_list.txt', 'r') as file:
-            team = file.read()
-        file.close()
-                
-        with open('temp_author.txt', 'r') as file:
-            authordata = file.readlines()
-        file.close()
-        index = -2
-        
-        author = authordata[0]
-        authorid = authordata[1]
-        
-        with open('Teams.txt', 'r') as file:
-            data = file.readlines()
-        file.close()
-        
-        with open('Teams.txt', 'r') as file:
-            for line in file:
-                index +=1
-                if line == f'Team Name: {team}\n':
-                    break
-        file.close()
-        
-        data[index] = f'Captain: {author}\n'
-        data[index] = f'Captain ID: {authorid}\n'
-        data[index+1] = f'Team Name: {self.children[0].view.TeamName}\n'
-        data[index+2] = f'Team Players: {self.children[0].view.Players}\n'
-        data[index+3] = f'Team Subs: {self.children[0].view.Subs}\n'
-        data[index+4] = f'Average Team Rank: {self.children[0].view.RankInfo}\n'
-        
-        with open(f'Teams.txt', 'w') as file:
-            file.writelines(data)
-        file.close()
         
         await interaction.response.send_message(f"Team **{self.children[0].view.TeamName}** has been updated.", ephemeral=True)
 
 # Attatchement Class.
 class TeamEditView(discord.ui.View):
-    def __init__(self):
+    def __init__(self, author, Teams):
         super().__init__()
 
         # Adds the dropdown to our view object.
-        self.add_item(TeamEditView2())
+        self.add_item(TeamEditView2(author, Teams))
 
 # Dropdown view for teams that the author is the Captain of.
 class TeamEditView2(discord.ui.Select):
-    def __init__(self):
-        Teams = []
-        with open('temp_teams_list.txt', 'r') as file:
-            for line in file:
-                Team = line.rstrip()
-
-                Teams.append(Team)
-        file.close()
+    def __init__(self, author, Teams):
+        self.author = author
         options = [
             discord.SelectOption(label=key)
             for key in Teams
@@ -1042,7 +1038,31 @@ class TeamEditView2(discord.ui.Select):
         x = TeamInfoEdit()
         await interaction.response.send_modal(x)
         await TeamInfoEdit.wait(x)
-
+        
+        with open('Teams.txt', 'r') as file:
+            data = file.readlines()
+        file.close()
+        
+        
+        index = -2
+        with open('Teams.txt', 'r') as file:
+            for line in file:
+                index +=1
+                if line == f'Team Name: {self.values[0]}\n':
+                    break
+        file.close()
+        
+        data[index] = f'Captain: {self.author}\n'
+        data[index] = f'Captain ID: {self.author.id}\n'
+        data[index+1] = f'Team Name: {x.children[0].view.TeamName}\n'
+        data[index+2] = f'Team Players: {x.children[0].view.Players}\n'
+        data[index+3] = f'Team Subs: {x.children[0].view.Subs}\n'
+        data[index+4] = f'Average Team Rank: {x.children[0].view.RankInfo}\n'
+        
+        with open(f'Teams.txt', 'w') as file:
+            file.writelines(data)
+        file.close()
+        
 # Attatchement Class.
 class MatchView(discord.ui.View):
     def __init__(self):
@@ -1203,27 +1223,23 @@ class OpponentMatchView2(discord.ui.Select):
         await Captain.send(embed=embed, view=view)
         await ConfirmDeny.wait(view)
         
-        Title = TeamName + " VS. " + str(self.values[0])
-        Date = '2022-07-08'
-        
-        # body = {
-        #     "Title": Title,
-        #     "Date": Date
-        # }
-        
-        # conn = http.client.HTTPSConnection('eor82olfyhrllj.m.pipedream.net')
-        # #conn.request("POST", "/", '{"Title": "'+Title+'"}', {'Content-Type': 'application/json'})
-        # conn.request({'Content-Type': 'multipart/form-data'}, url="/", body= body)
-        
-        payload = { 'Title': Title,
-            'Date': Date}
-        session = requests.Session()
-        session.post('https://eor82olfyhrllj.m.pipedream.net',data=payload)
-
-        
-        
         if view.children[0].view.confirm.view.value == "✔️":
             await Author.send(f"Your opponent {Captain} has accepted the match!")
+            
+            Title = TeamName + " VS. " + str(self.values[0])
+            Date = datetime.today().strftime('%Y-%m-%d')
+            
+            with open(f'./Matches.txt', 'a') as file:
+                file.writelines(f'{TeamName} VS. {str(self.values[0])}\n{Date}')
+            file.close()
+            
+            
+            
+            payload = { 'Title': Title,
+            'Date': Date}
+            session = requests.Session()
+            session.post('https://eor82olfyhrllj.m.pipedream.net',data=payload)
+            
         else:
             await Author.send(f"Your opponent {Captain} has denied the match!")
                 
@@ -1368,14 +1384,16 @@ async def self(interaction:discord.Interaction):
             if flag2 == 1:
                 flag2 = 2
     file.close()
-    with open('temp_teams_list.txt', 'w') as file:
-        for Team in Teams:
-            file.write(f"{Team}\n")
-    file.close()
+    # with open('temp_teams_list.txt', 'w') as file:
+    #     for Team in Teams:
+    #         file.write(f"{Team}\n")
+    # file.close()
     if flag == 0:
         await interaction.response.send_message("You are not listed as a captain for any of the teams in our database.", ephemeral=True)
     elif flag == 1:
-        await interaction.response.send_message("Please select the team you'd lke to edit.", view = TeamEditView(), ephemeral=True)
+        view = TeamEditView(author=author, Teams=Teams)
+        await interaction.response.send_message("Please select the team you'd lke to edit.", view = view, ephemeral=True)
+        
     
 @tree.command(name="create_team", guild= GUILD_ID)
 async def self(interaction: discord.Interaction):
