@@ -1031,9 +1031,6 @@ class TeamEditView2(discord.ui.Select):
         ]
         super().__init__(placeholder='Choose a team..', min_values=1, max_values=1, options=options)
     async def callback(self, interaction: discord.Interaction):
-        with open('temp_teams_list.txt', 'w') as file:
-            file.write(f'{self.values[0]}')
-        file.close()
                 
         x = TeamInfoEdit()
         await interaction.response.send_modal(x)
@@ -1384,10 +1381,6 @@ async def self(interaction:discord.Interaction):
             if flag2 == 1:
                 flag2 = 2
     file.close()
-    # with open('temp_teams_list.txt', 'w') as file:
-    #     for Team in Teams:
-    #         file.write(f"{Team}\n")
-    # file.close()
     if flag == 0:
         await interaction.response.send_message("You are not listed as a captain for any of the teams in our database.", ephemeral=True)
     elif flag == 1:

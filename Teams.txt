@@ -14,24 +14,24 @@ Average Team Rank: 0
 
 Captain: Master Nox#6330
 Captain ID: 208383176781856768
-Team Name: Test Team to fill out 1
+Team Name: 1
 Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
 Team Subs: BluBlazing#7777, BluBlazing#7777, BluBlazing#7777
-Average Team Rank: 11111
+Average Team Rank: 111111111
 
 Captain: Master Nox#6330
 Captain ID: 208383176781856768
-Team Name: Test Team to fill out a
+Team Name: 2
 Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
-Team Subs: no
-Average Team Rank: 14
+Team Subs: BluBlazing#7777, BluBlazing#7777, BluBlazing#7777
+Average Team Rank: 22222222222
 
 Captain: Master Nox#6330
 Captain ID: 208383176781856768
-Team Name: Test Team to fill out b
+Team Name: 3
 Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
-Team Subs: no
-Average Team Rank: 14
+Team Subs: BluBlazing#7777, BluBlazing#7777, BluBlazing#7777
+Average Team Rank: 33333333333
 
 Captain: Master Nox#6330
 Captain ID: 208383176781856768
