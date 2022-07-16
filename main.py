@@ -474,11 +474,8 @@ async def self(interaction: discord.Interaction):
          file.close()
 
 # Used in conjunction with the /setchannel command. This actually changes the channel.
-async def change_channel(self, chosen_channel):
-    with open('temp_function.txt', 'r') as file:
-        chosen_function = file.read()
-    file.close()
-        
+async def change_channel(self, chosen_channel, chosen_function):
+
     if chosen_function == "Bot Log":
         chosen_function = 0
     elif chosen_function == "Tweet Channel":
@@ -535,22 +532,15 @@ class ChannelDropdown(discord.ui.Select):
         # selected options. We only want the first one.
         if self.values[0] != '[Next Page]':
             id = text_channel_id_list[text_channel_name_list.index(self.values[0])]
-            await change_channel(self, id)
+            await change_channel(self, id, self.function)
             await interaction.response.send_message(f"You chose <#{id}>\nThe Bot is now updated.")
             
             botid = int(get_channel(0))
             botchannel = client.get_channel(botid)
             
-            # with open('temp_function.txt', 'r') as file:
-            #     chosen_function = file.read()
-            # file.close()
-            
             await botchannel.send(f"{interaction.user.mention} changed the {self.function} to <#{id}>")
         else:
             view = ChannelDropDownExtendedView(PageNumber=2, function=self.function)
-            # with open('temp_function.txt', 'r') as file:
-            #     function = file.read()
-            # file.close()
             await interaction.response.edit_message(content=f"You chose the **{self.function}** function.\nNow choose which channel you'd like to attach it to.", view=view)
 
 class ChannelDropdownExtended(discord.ui.Select):
@@ -628,10 +618,6 @@ class FunctionDropdown(discord.ui.Select):
         # Select object, and the values attribute gets a list of the user's
         # selected options. We only want the first one.
         view = ChannelDropdownView(function = self.values[0])
-        # view = ChannelDropdownView()
-        # with open('temp_function.txt', 'w') as file:
-        #     file.writelines(self.values[0])
-        # file.close()
         
         await interaction.response.send_message(f"You chose the **{self.values[0]}** function.\nNow choose which channel you'd like to attach it to.", view=view)
 
@@ -1062,39 +1048,36 @@ class TeamEditView2(discord.ui.Select):
         
 # Attatchement Class.
 class MatchView(discord.ui.View):
-    def __init__(self):
+    def __init__(self, author, enemy_captain, Teams: list):
         super().__init__()
 
         # Adds the dropdown to our view object.
-        self.add_item(MatchView2())
+        self.add_item(MatchView2(author, enemy_captain, Teams))
 
 # Dropdown view for teams that the author is the Captain of.
 class MatchView2(discord.ui.Select):
-    def __init__(self):
-        Teams = []
-        with open('temp_teams_list.txt', 'r') as file:
-            for line in file:
-                Team = line.rstrip('\n')
+    def __init__(self, author, enemy_captain, Teams: list):
+        self.author = author
+        self.enemy_captain = enemy_captain
 
-                Teams.append(Team)
-        file.close()
+        index = 0
+        for Team in Teams:
+            Teams[index] = Team.rstrip('\n')
+            index +=1
+                        
         options = [
             discord.SelectOption(label=key)
             for key in Teams
         ]
         super().__init__(placeholder='Choose a team..', min_values=1, max_values=1, options=options)
     async def callback(self, interaction: discord.Interaction):
-        with open('temp_match_request.txt', 'w') as file:
-            file.write(f'{self.values[0]}')
-        file.close()
         
-        with open('temp_author.txt', 'r') as file:
-            authordata = file.readlines()
-        file.close()
+        self.author_teams = self.values[0]
         
-        author = authordata[0]
-        authorid = int(authordata[1])
-        enemycaptain = int(authordata[2])
+        
+        author = self.author
+        authorid = int(author.id)
+        enemycaptain = self.enemy_captain.id
         
         Teams = []
         flag2 = 0
@@ -1113,57 +1096,40 @@ class MatchView2(discord.ui.Select):
                     Teams.append(TeamName)
                     flag2 = 0
         file.close()
-                
-        Teams = listToStringNewline(Teams)
         
-        with open('temp_match_request2.txt', 'w') as file:
-            file.writelines(Teams)
-        file.close()
-        
-        view = OpponentMatchView()
+        view = OpponentMatchView(self.author, self.author_teams, Teams)
         
         await interaction.response.send_message(f"Choose an opponent...", view= view, ephemeral=True)
 
 class OpponentMatchView(discord.ui.View):
-    def __init__(self):
+    def __init__(self, author, author_teams, enemy_teams):
         super().__init__()
 
         # Adds the dropdown to our view object.
-        self.add_item(OpponentMatchView2())
+        self.add_item(OpponentMatchView2(author, author_teams, enemy_teams))
 
 class OpponentMatchView2(discord.ui.Select):
-    def __init__(self):
-        Teams = []
-        with open('temp_match_request2.txt', 'r') as file:
-            for line in file:
-                Team = line.rstrip()
-
-                Teams.append(Team)
-        file.close()
+    def __init__(self, author, author_teams, enemy_teams):
+        self.author = author
+        self.author_teams = author_teams
+        
         options = [
             discord.SelectOption(label=key)
-            for key in Teams
+            for key in enemy_teams
         ]
         super().__init__(placeholder='Choose a team..', min_values=1, max_values=1, options=options)
     async def callback(self, interaction: discord.Interaction):
         
-        
         index = 0
         
-        with open('temp_author.txt', 'r') as file:
-            authordata = file.readlines()
-        file.close()
-        
-        author = authordata[0]
-        authorid = int(authordata[1])
+        author = self.author
+        authorid = int(author.id)
         
         with open('Teams.txt', 'r') as file:
             data = file.readlines()
         file.close()
         
-        with open('temp_match_request.txt', 'r') as file:
-            TeamtoSend = file.read()
-        file.close()
+        TeamtoSend = self.author_teams
         
         with open('Teams.txt', 'r') as file:
             for line in file:
@@ -1241,41 +1207,27 @@ class OpponentMatchView2(discord.ui.Select):
             await Author.send(f"Your opponent {Captain} has denied the match!")
                 
 class DeleteTeamView(discord.ui.View):
-    def __init__(self):
+    def __init__(self, TeamCaptain, Teams):
         super().__init__()
 
         # Adds the dropdown to our view object.
-        self.add_item(DeleteTeamView2())
+        self.add_item(DeleteTeamView2(TeamCaptain, Teams))
 
 # Dropdown view for teams that the author is the Captain of.
 class DeleteTeamView2(discord.ui.Select):
-    def __init__(self):
-        Teams = []
-        with open('temp_teams_list.txt', 'r') as file:
-            for line in file:
-                Team = line.rstrip()
+    def __init__(self, TeamCaptain, Teams):
+        self.TeamCaptain = TeamCaptain
 
-                Teams.append(Team)
-        file.close()
         options = [
             discord.SelectOption(label=key)
             for key in Teams
         ]
         super().__init__(placeholder='Choose a team to delete..', min_values=1, max_values=1, options=options)
     async def callback(self, interaction: discord.Interaction):
-        with open('temp_author.txt', 'r') as file:
-            authordata = file.readlines()
-        file.close()
-        
-        authorid = authordata[1]
-        
-        Captain = await client.fetch_user(int(authorid))
-        
-        
-        
+    
         view = ConfirmDenyDeletion()
         await interaction.response.send_message(f"Please confirm in DM's.", ephemeral=True)
-        await Captain.send(f'Are you certain you want to delete team **{self.values[0]}**?', view=view)
+        await self.TeamCaptain.send(f'Are you certain you want to delete team **{self.values[0]}**?', view=view)
         await ConfirmDenyDeletion.wait(view)
         
         if view.children[0].view.confirm.view.value == "✔️":
@@ -1295,7 +1247,7 @@ class DeleteTeamView2(discord.ui.Select):
                         break
             file.close()
             
-            if data[index-2] == f'Captain ID: {authorid}\n' and flag == 1:
+            if data[index-2] == f'Captain ID: {self.TeamCaptain.id}\n' and flag == 1:
                 data[index-3] = ""
                 data[index-2] = ""
                 data[index-1] = ""
@@ -1307,21 +1259,15 @@ class DeleteTeamView2(discord.ui.Select):
                 with open('Teams.txt', 'w') as file:
                     file.writelines(data)
                 file.close()
-                await Captain.send(f"Team **{self.values[0]}** has been deleted.")
+                await self.TeamCaptain.send(f"Team **{self.values[0]}** has been deleted.")
             else:
-                await Captain.send('Something went wrong. Contact Master Nox#6330 if the problem persists.')
+                await self.TeamCaptain.send('Something went wrong. Contact Master Nox#6330 if the problem persists.')
         else:
-            await Captain.send(f"Deletion cancelled.")
+            await self.TeamCaptain.send(f"Deletion cancelled.")
         
 @tree.command(name="match_request", description="Updated Showmatch.", guild= GUILD_ID)
 async def self(interaction: discord.Interaction, enemy_captain: discord.user.User):
     author = interaction.user
-    enemy_captain = enemy_captain.id
-    with open('temp_author.txt', 'w') as file:
-        file.write(str(author))
-        file.write(f'\n{author.id}')
-        file.write(f'\n{enemy_captain}')
-    file.close()
     
     Teams = []
     flag = 0
@@ -1336,16 +1282,11 @@ async def self(interaction: discord.Interaction, enemy_captain: discord.user.Use
             if flag2 == 1:
                 TeamName = str(file.readline())
                 TeamName = TeamName.replace("Team Name: ", "")
-                TeamName = TeamName.rstrip("\n")
                 Teams.append(TeamName)
                 flag2 = 0
     file.close()
-    with open('temp_teams_list.txt', 'w') as file:
-        for Team in Teams:
-            file.write(f"{Team}\n")
-    file.close()
     
-    view = MatchView()
+    view = MatchView(author, enemy_captain, Teams)
     
     if flag == 0:
         await interaction.response.send_message("You are not listed as a captain for any of the teams in our database.", ephemeral=True)
@@ -1356,10 +1297,6 @@ async def self(interaction: discord.Interaction, enemy_captain: discord.user.Use
 async def self(interaction:discord.Interaction):
     author = interaction.user
     authorid = author.id
-    with open('temp_author.txt', 'w') as file:
-        file.write(str(author))
-        file.write(f'\n{authorid}')
-    file.close()
     
     channel = interaction.channel
     Teams = []
@@ -1386,8 +1323,7 @@ async def self(interaction:discord.Interaction):
     elif flag == 1:
         view = TeamEditView(author=author, Teams=Teams)
         await interaction.response.send_message("Please select the team you'd lke to edit.", view = view, ephemeral=True)
-        
-    
+          
 @tree.command(name="create_team", guild= GUILD_ID)
 async def self(interaction: discord.Interaction):
     TeamCaptain = interaction.user
@@ -1425,11 +1361,6 @@ async def self(interaction: discord.Interaction):
     TeamCaptain = interaction.user
     CaptainID = TeamCaptain.id
     
-    with open('temp_author.txt', 'w') as file:
-        file.write(str(TeamCaptain))
-        file.write(f'\n{CaptainID}')
-    file.close()
-    
     Teams = []
     flag = 0
     flag2 = 0
@@ -1447,12 +1378,8 @@ async def self(interaction: discord.Interaction):
                 Teams.append(TeamName)
                 flag2 = 0
     file.close()
-    with open('temp_teams_list.txt', 'w') as file:
-        for Team in Teams:
-            file.write(f"{Team}\n")
-    file.close()
     
-    view = DeleteTeamView()
+    view = DeleteTeamView(TeamCaptain, Teams)
     
     if flag == 0:
         await interaction.response.send_message("You are not listed as a captain for any of the teams in our database.", ephemeral=True)
@@ -1517,7 +1444,6 @@ class Paginator(discord.ui.View):
         await self.interaction.edit_original_message(embeds=embs, view=self)
         interaction.response.defer()
         
-     
 class StaticPaginator(Paginator):
     """A simple paginator that takes in lines instead of a callback.
     A line limit and base embed may be passed in for customization.

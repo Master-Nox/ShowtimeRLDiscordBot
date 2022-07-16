@@ -24,7 +24,7 @@ Captain ID: 208383176781856768
 Team Name: 2
 Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
 Team Subs: BluBlazing#7777, BluBlazing#7777, BluBlazing#7777
-Average Team Rank: 22222222222
+Average Team Rank: 22222222
 
 Captain: Master Nox#6330
 Captain ID: 208383176781856768
@@ -75,24 +75,17 @@ Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
 Team Subs: no
 Average Team Rank: 14
 
-Captain: Master Nox#6330
-Captain ID: 208383176781856768
-Team Name: Test Team to fill out i
-Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
-Team Subs: no
-Average Team Rank: 14
-
-Captain: Master Nox#6330
-Captain ID: 208383176781856768
-Team Name: Test Team to fill out j
-Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
-Team Subs: no
-Average Team Rank: 14
-
 Captain: Cassia#4127
 Captain ID: 199341602626338816
 Team Name: Wells Fargo
 Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
 Team Subs: BluBlazing#7777, BluBlazing#7777, BluBlazing#7777
 Average Team Rank: emerald
+
+Captain: bearded.shuckle#7627
+Captain ID: 154384991243993090
+Team Name: beard team
+Team Players: beard#1234
+Team Subs: notbeard#5678
+Average Team Rank: 42069
 
