@@ -238,8 +238,123 @@ async def on_ready():
         await tree.sync(guild= GUILD_ID)
         self.synced = True
     print(f"Bot has logged in.")
-    # Defines a loop that will run every 10 seconds (checks for live users every 10 seconds).
+    
+    @tasks.loop(hours=24)
+    async def todays_matchs():
+        today = datetime.today().strftime("%Y-%m-%d")
+        year, month, day = today.rsplit('-')
+        
+        year = int(year)
+        month = int(month)
+        day = int(day)
+        
+        if month == 1:
+            monthname = 'January'
+        elif month == 2:
+            monthname = 'February'
+        elif month == 3:
+            monthname = 'March'
+        elif month == 4:
+            monthname = 'April'
+        elif month == 5:
+            monthname = 'May'
+        elif month == 6:
+            monthname = 'June'
+        elif month == 7:
+            monthname = 'July'
+        elif month == 8:
+            monthname = 'August'
+        elif month == 9:
+            monthname = 'September'
+        elif month == 10:
+            monthname = 'October'
+        elif month == 11:
+            monthname = 'November'
+        elif month == 12:
+            monthname = 'December'
+            
+        print(f'Today is {monthname} {day} {year}')
+        
+        with open('Matches.txt', 'r') as file:
+            data = file.readlines()
+        file.close()
+        
+        tobedeleted = []
+        todaysmatches = []
+        
+        index = 0
+        for line in data:
+            if line.startswith('Date: '):
+                date = line.replace('Date: ', '')
+                MatchYear, MatchMonth, MatchDay = date.rsplit('-')
+                
+                MatchYear = int(MatchYear)
+                MatchMonth = int(MatchMonth)
+                MatchDay = int(MatchDay)
+                
+                if MatchYear < year:
+                    tobedeleted.append(index)
+                elif MatchYear == year and MatchMonth < month:
+                    tobedeleted.append(index)
+                elif MatchYear == year and MatchMonth == month and MatchDay < day:
+                    tobedeleted.append(index)
+                elif MatchYear == year and MatchMonth == month and MatchDay == day:
+                    todaysmatches.append(index)
+            index+=1
+        
+        for i in tobedeleted:
+            data[i-1] = ''
+            data[i] = ''
+            data[i+1] = ''
+            data[i+2] = ''
+        
+        with open('Matches.txt', 'w') as file:
+            file.writelines(data)
+        file.close()
+        
+        
+        matchname = []
+        matchdate = []
+        matchtime = []
+        
+        for i in todaysmatches:
+            matchname.append(data[i-1])
+            matchdate.append(data[i])
+            matchtime.append(data[i+1])
 
+        if len(todaysmatches) != 0:
+            NumofMatches = len(todaysmatches)
+            TotalPages = 0
+            while NumofMatches >= 0:
+                try:
+                    NumofMatches -=10
+                    TotalPages +=1
+                except:
+                    pass
+
+            def embed_match_page2(page: int) -> List[discord.Embed]:
+                display = page*10
+                display2 = display-10
+                embs = []
+                emb = discord.Embed(
+                    color= discord.colour.Color.random()
+                )
+                emb.add_field(name='| **Teams**', value=listToStringNewline(matchname[display2:display]), inline=True)
+                emb.add_field(name='| **Date**', value=listToStringNewline(matchdate[display2:display]), inline=True)
+                emb.add_field(name='| **Time**', value=listToStringNewline(matchtime[display2:display]), inline=True)
+                embs.append(emb)
+                return embs
+
+            view = Paginator(embed_match_page2, TotalPages, interaction=None)
+            embs = view.get_page(1)
+            
+            channel = client.get_channel(int(get_channel(5)))
+            
+            await channel.send('<@&986715160880242799>\nThe Matches for today are: ', embeds=embs, view=view)
+        else:
+            channel = client.get_channel(int(get_channel(5)))
+            channel.send('<@&986715160880242799>\nNo Matches today.')
+        
     @tasks.loop(seconds=60)
     async def live_notifs_loop():
 
@@ -305,6 +420,7 @@ async def on_ready():
         file.close()
 
     # Start your loop.
+    todays_matchs.start()
     live_notifs_loop.start()
 
 class ModMailModal(ui.Modal, title='Mod Mail'):
