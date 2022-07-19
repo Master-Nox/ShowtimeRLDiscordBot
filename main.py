@@ -495,6 +495,8 @@ async def change_channel(self, chosen_channel, chosen_function):
         chosen_function = 3
     elif chosen_function == "Announcement Channel":
         chosen_function = 4
+    elif chosen_function == "Producer Channel":
+        chosen_function = 5
         
     with open('channels.txt', 'r') as file:
         channels = file.read()
@@ -518,7 +520,7 @@ class ChannelDropdown(discord.ui.Select):
                     text_channel_name_list.append(channel.name)
                     text_channel_id_list.append(channel.id)
         
-        if len(text_channel_name_list) > 10:
+        if len(text_channel_name_list) > 11:
             text_channel_name_list[11] = "[Next Page]"
             del text_channel_name_list[12:]
             
@@ -542,7 +544,7 @@ class ChannelDropdown(discord.ui.Select):
         if self.values[0] != '[Next Page]':
             id = text_channel_id_list[text_channel_name_list.index(self.values[0])]
             await change_channel(self, id, self.function)
-            await interaction.response.send_message(f"You chose <#{id}>\nThe Bot is now updated.")
+            await interaction.response.send_message(f"You chose <#{id}>\nThe Bot is now updated.", ephemeral=True)
             
             botid = int(get_channel(0))
             botchannel = client.get_channel(botid)
@@ -594,7 +596,7 @@ class ChannelDropdownExtended(discord.ui.Select):
         if self.values[0] != '[Next Page]':
             id = text_channel_id_list[text_channel_name_list.index(self.values[0])]
             await change_channel(self, id)
-            await interaction.response.send_message(f"You chose <#{id}>\nThe Bot is now updated.")
+            await interaction.response.send_message(f"You chose <#{id}>\nThe Bot is now updated.", ephemeral=True)
             
             botid = int(get_channel(0))
             botchannel = client.get_channel(botid)
@@ -614,7 +616,8 @@ class FunctionDropdown(discord.ui.Select):
             discord.SelectOption(label='Tweet Channel', emoji='🟦'),
             discord.SelectOption(label='Stream Channel', emoji='🟪'),
             discord.SelectOption(label='Mod Mail', emoji='🟥'),
-            discord.SelectOption(label="Announcement Channel", emoji='⬜')
+            discord.SelectOption(label="Announcement Channel", emoji='⬜'),
+            discord.SelectOption(label="Producer Channel", emoji='🟧')
         ]
         # The placeholder is what will be shown when no option is chosen
         # The min and max values indicate we can only pick one of the three options
@@ -628,7 +631,7 @@ class FunctionDropdown(discord.ui.Select):
         # selected options. We only want the first one.
         view = ChannelDropdownView(function = self.values[0])
         
-        await interaction.response.send_message(f"You chose the **{self.values[0]}** function.\nNow choose which channel you'd like to attach it to.", view=view)
+        await interaction.response.send_message(f"You chose the **{self.values[0]}** function.\nNow choose which channel you'd like to attach it to.", view=view, ephemeral=True)
 
 # Creates the view for the Function Dropdown.
 class FunctionDropdownView(discord.ui.View):
@@ -657,7 +660,7 @@ class ChannelDropDownExtendedView(discord.ui.View):
 @tree.command(name="setchannel", description="Lets you set various channels.", guild= GUILD_ID)
 async def self(interaction: discord.Interaction):
     view = FunctionDropdownView()
-    await interaction.response.send_message('Choose a function to change.', view=view)
+    await interaction.response.send_message('Choose a function to change.', view=view, ephemeral=True)
 
 # Lists channels the bot is outputting too.
 @tree.command(name="mod_channel_list", description=f"Display all bot configured channels", guild= GUILD_ID)
@@ -928,45 +931,6 @@ class ConfirmDenyDeletion(discord.ui.View):
         self.value = "❌"
         self.stop()
 
-# Test for the showmatch system. Need to find a way to properly record and remember information.
-@tree.command(name="showmatch_test", description=f'WIP', guild= GUILD_ID)
-async def self(interaction: discord.Interaction, usertag: str):
-    author = interaction.user
-    user = usertag.removeprefix('<@!')
-    user = user.removesuffix('>')
-    user = int(user)
-    user = await client.fetch_user(user)
-    x = TeamModal()
-    await interaction.response.send_modal(x)
-    await TeamModal.wait(x)
-    TeamName1 = x.children[0].view.TeamName.value
-    Team1Players = x.children[0].view.Players.value
-    Team1Subs = x.children[0].view.Subs.value
-    Team1Rank = x.children[0].view.RankInfo.value
-    embed = discord.Embed(
-            color=discord.Color.random(),
-            title=f"Match Request from {author}",
-            description=f"You've received a match request!\nPlease accept or deny after checking the details.")
-    try:
-        embed.set_thumbnail(url=f"{author.avatar.url}")
-    except:
-        embed.set_thumbnail(url='https://styles.redditmedia.com/t5_2qhk5/styles/communityIcon_v58lvj23zo551.jpg')
-        print(f'{author} did not have an avatar url.')
-    embed.add_field(name="**Team Name**", value=f"{TeamName1}", inline=False)
-    embed.add_field(name=f"**Players**", value=f"{Team1Players}", inline=True)
-    embed.add_field(name=f"**Subs**", value=f"{Team1Subs}", inline=True)
-    embed.add_field(name="**Average Rank**", value=f"{Team1Rank}", inline=False)
-    embed.timestamp = datetime.now()
-    view = ConfirmDeny()
-    await user.send(embed=embed, view=view)
-    await ConfirmDeny.wait(view)
-    conn = http.client.HTTPSConnection('eor82olfyhrllj.m.pipedream.net')
-    conn.request("POST", "/", '{"Information": "'+TeamName1+'"}', {'Content-Type': 'application/json'})
-    if view.children[0].view.confirm.view.value == "✔️":
-        await author.send(f"Your opponent ({usertag}) has accepted the match!")
-    else:
-        await author.send(f"Your opponent ({usertag}) has denied the match!")
-
 # Modal to gather team information.
 class TeamModal2(ui.Modal, title='Team Information'):
     TeamName = discord.ui.TextInput(label='Team Name', required=True)
@@ -975,25 +939,6 @@ class TeamModal2(ui.Modal, title='Team Information'):
     RankInfo = discord.ui.TextInput(label="Average Team Rank", default="0", required=True)
     
     async def on_submit(self, interaction):
-        # author = interaction.user
-        # embed = discord.Embed(
-        #     color=discord.Color.random(),
-        #     title=f"Match Request from {author}",
-        #     description=f"You've received a match request!\nPlease accept or deny after checking the details.")
-        # try:
-        #     embed.set_thumbnail(url=f"{author.avatar.url}")
-        # except:
-        #     embed.set_thumbnail(url='https://styles.redditmedia.com/t5_2qhk5/styles/communityIcon_v58lvj23zo551.jpg')
-        #     print(f'{author} did not have an avatar url.')
-        # embed.add_field(name="**Team Name**", value=f"{self.TeamName}", inline=False)
-        # embed.add_field(name=f"**Players**", value=f"{self.Players}", inline=True)
-        # embed.add_field(name=f"**Subs**", value=f"{self.Subs}", inline=True)
-        # embed.add_field(name="**Average Rank**", value=f"{self.RankInfo}", inline=False)
-        # embed.timestamp = datetime.now()
-        
-        # with open(f'./Matches.txt', 'a') as file:
-        #     file.writelines(f'{datetime.now()}, {self.TeamName}, {self.Players}, {self.Subs}, {self.RankInfo}\n')
-        # file.close
         
         await interaction.response.send_message("Please enter your team information.", ephemeral=True)
 
@@ -1282,7 +1227,7 @@ class DeleteTeamView2(discord.ui.Select):
         else:
             await self.TeamCaptain.send(f"Deletion cancelled.")
         
-@tree.command(name="match_request", description="Sets up a match within the showmatch system. Date Format: YYYY-MM-DD. Time Format: HH:MM.", guild= GUILD_ID)
+@tree.command(name="match_request", description="Sets up a match within the showmatch system. Date Format: YYYY-MM-DD. Time Format: HH:MM CST.", guild= GUILD_ID)
 async def self(interaction: discord.Interaction, enemy_captain: discord.user.User, date: str, time: str):
     author = interaction.user
     EndEarly = False
@@ -1465,7 +1410,7 @@ class Paginator(discord.ui.View):
         self._update_buttons()
         embs = self.callback(self.page)
         await self.interaction.edit_original_message(embeds=embs, view=self)
-        print(type(interaction))
+        await interaction.response.defer()
 
     @discord.ui.button(label="next")
     async def next_button(self, _, interaction: discord.Interaction):
@@ -1473,7 +1418,6 @@ class Paginator(discord.ui.View):
         self._update_buttons()
         embs = self.callback(self.page)
         await self.interaction.edit_original_message(embeds=embs, view=self)
-        interaction.response.defer()
         
 class StaticPaginator(Paginator):
     """A simple paginator that takes in lines instead of a callback.
@@ -1571,8 +1515,66 @@ async def self(interaction: discord.Interaction):
     view = Role_Buttons()
     await interaction.response.send_message("Test Role Message!", view=view)
 
+@tree.command(name='list_matches', guild=GUILD_ID, description="Lists all upcoming matches and their times.")
+async def self(interaction: discord.Interaction):
+    today = datetime.today().strftime('%Y-%m-%d')
+    print(today)
+    
+    with open('Matches.txt', 'r') as file:
+        data = file.readlines()
+    file.close()
+    
+    Matches = []
+    Dates = []
+    Times = []
+    
+    
+    index = 0
+    for line in data:
 
+        if line.startswith('Date: '):
+            Matches.append(data[index-1].replace('\n', ''))
+            data[index] = data[index].replace('Date: ', '')
+            Dates.append(data[index].replace('\n', ''))
+            data[index+1] = data[index+1].replace('Time: ', '')
+            Times.append(data[index+1].replace('\n', ''))
+        index +=1
+            
+    # print(Matches)
+    # print(Dates)
+    # print(Times)
 
+    NumofMatches = len(Matches)
+    TotalPages = 0
+    while NumofMatches >= 0:
+        try:
+            NumofMatches -=10
+            TotalPages +=1
+        except:
+            pass
+
+    def embed_match_page(page: int) -> List[discord.Embed]:
+        display = page*10
+        display2 = display-10
+        embs = []
+        emb = discord.Embed(
+            color= discord.colour.Color.random()
+        )
+        emb.add_field(name='| **Teams**', value=listToStringNewline(Matches[display2:display]), inline=True)
+        emb.add_field(name='| **Date**', value=listToStringNewline(Dates[display2:display]), inline=True)
+        emb.add_field(name='| **Time**', value=listToStringNewline(Times[display2:display]), inline=True)
+        embs.append(emb)
+        return embs
+
+    view = Paginator(embed_match_page, TotalPages, interaction)
+    embs = view.get_page(1)
+    
+    await interaction.response.send_message(embeds=embs, view=view)
+    
+    
+    
+    
+    #await interaction.response.send_message('debug mode', ephemeral=True)
 
     # This one is similar to the confirmation button except sets the inner value to `False`
     
