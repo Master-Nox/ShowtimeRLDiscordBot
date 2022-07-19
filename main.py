@@ -14,6 +14,7 @@ from tkinter import Button
 import requests
 from requests_oauthlib import OAuth1Session
 import os
+import re
 from datetime import datetime, timedelta
 from asyncio import sleep as s, wait
 # from webserver import keep_alive
@@ -139,6 +140,14 @@ async def on_resumed():
 @client.event
 async def on_connect():
     print('ShowtimeRL Bot was connected starting at ' + datetime.ctime(datetime.now()))
+
+def date_check(input):
+    pattern = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", re.IGNORECASE)
+    return pattern.match(input)
+
+def time_check(input):
+    pattern = re.compile(r"[0-9]+(:)?[0-9]+", re.IGNORECASE)
+    return pattern.match(input)
 
 # Logs exception to .txt file.
 def log_and_print_exception(e):
@@ -1048,18 +1057,20 @@ class TeamEditView2(discord.ui.Select):
         
 # Attatchement Class.
 class MatchView(discord.ui.View):
-    def __init__(self, author, enemy_captain, Teams: list):
+    def __init__(self, author, enemy_captain, Teams: list, date, time):
         super().__init__()
 
         # Adds the dropdown to our view object.
-        self.add_item(MatchView2(author, enemy_captain, Teams))
+        self.add_item(MatchView2(author, enemy_captain, Teams, date, time))
 
 # Dropdown view for teams that the author is the Captain of.
-class MatchView2(discord.ui.Select):
-    def __init__(self, author, enemy_captain, Teams: list):
+class MatchView2(discord.ui.Select): 
+    def __init__(self, author, enemy_captain, Teams: list, date, time):
         self.author = author
         self.enemy_captain = enemy_captain
-
+        self.date = date
+        self.time = time
+        
         index = 0
         for Team in Teams:
             Teams[index] = Team.rstrip('\n')
@@ -1075,8 +1086,7 @@ class MatchView2(discord.ui.Select):
         self.author_teams = self.values[0]
         
         
-        author = self.author
-        authorid = int(author.id)
+        # author = self.author
         enemycaptain = self.enemy_captain.id
         
         Teams = []
@@ -1097,21 +1107,24 @@ class MatchView2(discord.ui.Select):
                     flag2 = 0
         file.close()
         
-        view = OpponentMatchView(self.author, self.author_teams, Teams)
+        view = OpponentMatchView(self.author, self.author_teams, Teams, self.date, self.time)
         
-        await interaction.response.send_message(f"Choose an opponent...", view= view, ephemeral=True)
+        await interaction.response.send_message(f"Choose an opponent.", view= view, ephemeral=True)
 
 class OpponentMatchView(discord.ui.View):
-    def __init__(self, author, author_teams, enemy_teams):
+    def __init__(self, author, author_teams, enemy_teams, date, time):
         super().__init__()
 
         # Adds the dropdown to our view object.
-        self.add_item(OpponentMatchView2(author, author_teams, enemy_teams))
+        self.add_item(OpponentMatchView2(author, author_teams, enemy_teams, date, time))
 
 class OpponentMatchView2(discord.ui.Select):
-    def __init__(self, author, author_teams, enemy_teams):
+    def __init__(self, author, author_teams, enemy_teams, date, time):
         self.author = author
         self.author_teams = author_teams
+        self.date = date
+        self.time = time
+        
         
         options = [
             discord.SelectOption(label=key)
@@ -1174,6 +1187,8 @@ class OpponentMatchView2(discord.ui.Select):
         except:
             embed.set_thumbnail(url='https://styles.redditmedia.com/t5_2qhk5/styles/communityIcon_v58lvj23zo551.jpg')
             #print(f'{Author} did not have an avatar url.')
+        embed.add_field(name="**Proposed Date**", value=f"{self.date}", inline=True)
+        embed.add_field(name="**Proposed Time**", value=f"{self.time}", inline=True)
         embed.add_field(name="**Team Name**", value=f"{TeamName}", inline=False)
         embed.add_field(name=f"**Players**", value=f"{TeamPlayers}", inline=True)
         embed.add_field(name=f"**Subs**", value=f"{TeamSubs}", inline=True)
@@ -1189,17 +1204,19 @@ class OpponentMatchView2(discord.ui.Select):
         if view.children[0].view.confirm.view.value == "✔️":
             await Author.send(f"Your opponent {Captain} has accepted the match!")
             
+            TeamName = TeamName.replace('\n', '')
+            
             Title = TeamName + " VS. " + str(self.values[0])
-            Date = datetime.today().strftime('%Y-%m-%d')
             
             with open(f'./Matches.txt', 'a') as file:
-                file.writelines(f'{TeamName} VS. {str(self.values[0])}\n{Date}')
+                file.writelines(f'{TeamName} VS. {str(self.values[0])}\nDate: {self.date}\nTime: {self.time}\n\n')
             file.close()
             
             
             
             payload = { 'Title': Title,
-            'Date': Date}
+            'Date': self.date,
+            'Time': self.time}
             session = requests.Session()
             session.post('https://eor82olfyhrllj.m.pipedream.net',data=payload)
             
@@ -1265,33 +1282,47 @@ class DeleteTeamView2(discord.ui.Select):
         else:
             await self.TeamCaptain.send(f"Deletion cancelled.")
         
-@tree.command(name="match_request", description="Updated Showmatch.", guild= GUILD_ID)
-async def self(interaction: discord.Interaction, enemy_captain: discord.user.User):
+@tree.command(name="match_request", description="Sets up a match within the showmatch system. Date Format: YYYY-MM-DD. Time Format: HH:MM.", guild= GUILD_ID)
+async def self(interaction: discord.Interaction, enemy_captain: discord.user.User, date: str, time: str):
     author = interaction.user
+    EndEarly = False
+    if date_check(date) == None:
+        await interaction.response.send_message('Your date was entered incorrectly. Please use the format YYYY-MM-DD.', ephemeral=True)
+        print(f'{author} entered the date incorrectly when using /match_request.')
+        EndEarly = True
+        if time_check(time) == None:
+            await interaction.followup.send('Your time was entered incorrectly. Please use the format HH:MM.', ephemeral=True)
+            print(f'{author} entered the time incorrectly when using /match_request.')
     
-    Teams = []
-    flag = 0
-    flag2 = 0
-    index = 0
-    with open('Teams.txt', 'r') as file:
-        for line in file:
-            index +=1
-            if "Captain ID: "+ str(author.id) in line:
-                flag = 1
-                flag2 = 1
-            if flag2 == 1:
-                TeamName = str(file.readline())
-                TeamName = TeamName.replace("Team Name: ", "")
-                Teams.append(TeamName)
-                flag2 = 0
-    file.close()
-    
-    view = MatchView(author, enemy_captain, Teams)
-    
-    if flag == 0:
-        await interaction.response.send_message("You are not listed as a captain for any of the teams in our database.", ephemeral=True)
-    elif flag == 1:
-        await interaction.response.send_message("Please select your team.", view = view, ephemeral=True)
+    if time_check(time) == None and EndEarly == False:
+        await interaction.response.send_message('Your time was entered incorrectly. Please use the format HH:MM.', ephemeral=True)
+        print(f'{author} entered the time incorrectly when using /match_request.')
+        EndEarly == True
+        
+    if EndEarly != True:
+        Teams = []
+        flag = 0
+        flag2 = 0
+        index = 0
+        with open('Teams.txt', 'r') as file:
+            for line in file:
+                index +=1
+                if "Captain ID: "+ str(author.id) in line:
+                    flag = 1
+                    flag2 = 1
+                if flag2 == 1:
+                    TeamName = str(file.readline())
+                    TeamName = TeamName.replace("Team Name: ", "")
+                    Teams.append(TeamName)
+                    flag2 = 0
+        file.close()
+        
+        view = MatchView(author, enemy_captain, Teams, date, time)
+        
+        if flag == 0:
+            await interaction.response.send_message("You are not listed as a captain for any of the teams in our database.", ephemeral=True)
+        elif flag == 1:
+            await interaction.response.send_message("Please select your team.", view = view, ephemeral=True)
      
 @tree.command(name="edit_team", guild= GUILD_ID)
 async def self(interaction:discord.Interaction):
