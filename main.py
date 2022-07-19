@@ -130,12 +130,12 @@ ctx: commands.Context
 @client.event
 async def on_disconnect():
     uptimedelta = datetime.now() - start_time
-    print('ShowtimeRL Bot was disconnected at ' + datetime.ctime(start_time) + '. ShowtimeRL Bot has been up for ' + str(timedelta(seconds=uptimedelta.seconds)))
+    print('ShowtimeRL Bot disconnected at ' + datetime.ctime(datetime.now()) + '. ShowtimeRL Bot has been up for ' + str(timedelta(seconds=uptimedelta.seconds)))
 
 @client.event
 async def on_resumed():
     uptimedelta = datetime.now() - start_time
-    print("ShowtimeRL Bot reconnected " + datetime.ctime(start_time) + '. ShowtimeRL Bot has been up for ' + str(timedelta(seconds=uptimedelta.seconds)))
+    print("ShowtimeRL Bot reconnected " + datetime.ctime(datetime.now()) + '. ShowtimeRL Bot has been up for ' + str(timedelta(seconds=uptimedelta.seconds)))
 
 @client.event
 async def on_connect():
@@ -250,37 +250,51 @@ async def on_ready():
         
         if month == 1:
             monthname = 'January'
+            monthlength = 31
         elif month == 2:
             monthname = 'February'
+            if year == 2024:
+                monthlength = 29
+            monthlength = 28
         elif month == 3:
             monthname = 'March'
+            monthlength = 31
         elif month == 4:
             monthname = 'April'
+            monthlength = 0
         elif month == 5:
             monthname = 'May'
+            monthlength = 31
         elif month == 6:
             monthname = 'June'
+            monthlength = 30
         elif month == 7:
             monthname = 'July'
+            monthlength = 31
         elif month == 8:
             monthname = 'August'
+            monthlength = 31
         elif month == 9:
             monthname = 'September'
+            monthlength = 30
         elif month == 10:
             monthname = 'October'
+            monthlength = 31
         elif month == 11:
             monthname = 'November'
+            monthlength = 0
         elif month == 12:
             monthname = 'December'
+            monthlength = 31
             
-        print(f'Today is {monthname} {day} {year}')
+        print(f'\nRemoving Matches prior to {monthname} {day} {year}.\nCurrent time is: {datetime.now()}\n')
         
         with open('Matches.txt', 'r') as file:
             data = file.readlines()
         file.close()
         
         tobedeleted = []
-        todaysmatches = []
+        upcomingmatches = []
         
         index = 0
         for line in data:
@@ -292,16 +306,60 @@ async def on_ready():
                 MatchMonth = int(MatchMonth)
                 MatchDay = int(MatchDay)
                 
-                if MatchYear < year:
-                    tobedeleted.append(index)
-                elif MatchYear == year and MatchMonth < month:
-                    tobedeleted.append(index)
-                elif MatchYear == year and MatchMonth == month and MatchDay < day:
-                    tobedeleted.append(index)
-                elif MatchYear == year and MatchMonth == month and MatchDay == day:
-                    todaysmatches.append(index)
+                if day+7 > monthlength:
+                    remainingdays = day+7-monthlength
+                    
+                    print(f'Remaining Days: {remainingdays}')
+                    
+                    if MatchYear < year:
+                        tobedeleted.append(index)
+                    elif MatchYear == year and MatchMonth < month:
+                        tobedeleted.append(index)
+                    elif MatchYear == year and MatchMonth == month and MatchDay < day:
+                        tobedeleted.append(index)
+                    elif MatchYear == year and MatchMonth == month and MatchDay == day:
+                        upcomingmatches.append(index)    
+                    
+                    index2 = 1
+                    while remainingdays > 0:
+                        newmonth = month+1
+                                                  
+                        if newmonth == 13:
+                            newmonth = 1
+                            year += 1
+                        
+                        if MatchYear == year and MatchMonth == newmonth and MatchDay == index2:
+                            upcomingmatches.append(index)
+                        index2 += 1
+                        remainingdays -=1
+                    
+                
+                if day+7 < monthlength:
+                    if MatchYear < year:
+                        tobedeleted.append(index)
+                    elif MatchYear == year and MatchMonth < month:
+                        tobedeleted.append(index)
+                    elif MatchYear == year and MatchMonth == month and MatchDay < day:
+                        tobedeleted.append(index)
+                    elif MatchYear == year and MatchMonth == month and MatchDay == day:
+                        upcomingmatches.append(index)
+                    elif MatchYear == year and MatchMonth == month and MatchDay == day+1:
+                        upcomingmatches.append(index)
+                    elif MatchYear == year and MatchMonth == month and MatchDay == day+2:
+                        upcomingmatches.append(index)
+                    elif MatchYear == year and MatchMonth == month and MatchDay == day+3:
+                        upcomingmatches.append(index)
+                    elif MatchYear == year and MatchMonth == month and MatchDay == day+4:
+                        upcomingmatches.append(index)
+                    elif MatchYear == year and MatchMonth == month and MatchDay == day+5:
+                        upcomingmatches.append(index)
+                    elif MatchYear == year and MatchMonth == month and MatchDay == day+6:
+                        upcomingmatches.append(index)
+                    elif MatchYear == year and MatchMonth == month and MatchDay == day+7:
+                        upcomingmatches.append(index)
+                        
             index+=1
-        
+
         for i in tobedeleted:
             data[i-1] = ''
             data[i] = ''
@@ -317,13 +375,13 @@ async def on_ready():
         matchdate = []
         matchtime = []
         
-        for i in todaysmatches:
+        for i in upcomingmatches:
             matchname.append(data[i-1])
             matchdate.append(data[i])
             matchtime.append(data[i+1])
 
-        if len(todaysmatches) != 0:
-            NumofMatches = len(todaysmatches)
+        if len(upcomingmatches) != 0:
+            NumofMatches = len(upcomingmatches)
             TotalPages = 0
             while NumofMatches >= 0:
                 try:
@@ -332,28 +390,20 @@ async def on_ready():
                 except:
                     pass
 
-            def embed_match_page2(page: int) -> List[discord.Embed]:
-                display = page*10
-                display2 = display-10
                 embs = []
                 emb = discord.Embed(
                     color= discord.colour.Color.random()
                 )
-                emb.add_field(name='| **Teams**', value=listToStringNewline(matchname[display2:display]), inline=True)
-                emb.add_field(name='| **Date**', value=listToStringNewline(matchdate[display2:display]), inline=True)
-                emb.add_field(name='| **Time**', value=listToStringNewline(matchtime[display2:display]), inline=True)
-                embs.append(emb)
-                return embs
-
-            view = Paginator(embed_match_page2, TotalPages, interaction=None)
-            embs = view.get_page(1)
+                emb.add_field(name='| **Teams**', value=listToStringNewline(matchname), inline=True)
+                emb.add_field(name='| **Date**', value=listToStringNewline(matchdate), inline=True)
+                emb.add_field(name='| **Time**', value=listToStringNewline(matchtime), inline=True)
             
             channel = client.get_channel(int(get_channel(5)))
             
-            await channel.send('<@&986715160880242799>\nThe Matches for today are: ', embeds=embs, view=view)
+            await channel.send('<@&986715160880242799>\nThe Matches for the next 7 days are: ', embed=emb)
         else:
             channel = client.get_channel(int(get_channel(5)))
-            channel.send('<@&986715160880242799>\nNo Matches today.')
+            await channel.send('<@&986715160880242799>\nNo Matches in the next 7 days.')
         
     @tasks.loop(seconds=60)
     async def live_notifs_loop():

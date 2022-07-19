@@ -1,32 +1,24 @@
-1 VS. 2
-Date: 2022-07-19
-Time: 12:00
-
-3 VS. Test Team to fill out h
-Date: 2022-07-20
-Time: 4:00
+1 VS. 3
+Date: 2022-08-02
+Time: 10:00
 
 1 VS. 2
 Date: 2022-07-19
 Time: 12:00
 
-3 VS. Test Team to fill out h
+2 VS. 3
 Date: 2022-07-20
-Time: 4:00
-
-1 VS. 2
-Date: 2022-07-19
 Time: 12:00
 
-3 VS. Test Team to fill out h
-Date: 2022-07-20
-Time: 4:00
-
-1 VS. 2
-Date: 2022-07-19
+3 VS. Test Team to fill out c
+Date: 2022-07-21
 Time: 12:00
 
-3 VS. Test Team to fill out h
-Date: 2022-07-20
-Time: 4:00
+1 VS. Test Team to fill out c
+Date: 2022-07-26
+Time: 12:00
+
+Test Team to fill out h VS. Test Team to fill out g
+Date: 2022-07-27
+Time: 12:00
 
