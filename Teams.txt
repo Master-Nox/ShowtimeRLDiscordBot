@@ -24,14 +24,14 @@ Captain ID: 208383176781856768
 Team Name: 2
 Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
 Team Subs: BluBlazing#7777, BluBlazing#7777, BluBlazing#7777
-Average Team Rank: 22222222
+Average Team Rank: 0
 
 Captain: Master Nox#6330
 Captain ID: 208383176781856768
 Team Name: 3
 Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
 Team Subs: BluBlazing#7777, BluBlazing#7777, BluBlazing#7777
-Average Team Rank: 33333333333
+Average Team Rank: 3333333
 
 Captain: Master Nox#6330
 Captain ID: 208383176781856768
@@ -88,4 +88,18 @@ Team Name: beard team
 Team Players: beard#1234
 Team Subs: notbeard#5678
 Average Team Rank: 42069
+
+Captain: Master Nox#6330
+Captain ID: 208383176781856768
+Team Name: 5
+Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
+Team Subs: BluBlazing#7777, BluBlazing#7777, BluBlazing#7777
+Average Team Rank: 5555555
+
+Captain: Master Nox#6330
+Captain ID: 208383176781856768
+Team Name: 4
+Team Players: Master Nox#6330, Master Nox#6330, Master Nox#6330
+Team Subs: BluBlazing#7777, BluBlazing#7777, BluBlazing#7777
+Average Team Rank: 444444
 

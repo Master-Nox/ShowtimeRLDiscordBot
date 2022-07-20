@@ -31,8 +31,11 @@ from discord import app_commands, ui
 import tweepy
 import http.client
 from typing import Callable, List, Optional
+import sys
 from dotenv import load_dotenv
 load_dotenv()
+
+#sys.stdout = open('log.txt', 'w')
 
 class Role_Buttons(discord.ui.View):
     def __init__(self):
@@ -131,11 +134,13 @@ ctx: commands.Context
 async def on_disconnect():
     uptimedelta = datetime.now() - start_time
     print('ShowtimeRL Bot disconnected at ' + datetime.ctime(datetime.now()) + '. ShowtimeRL Bot has been up for ' + str(timedelta(seconds=uptimedelta.seconds)))
+    #sys.stdout.close()
 
 @client.event
 async def on_resumed():
     uptimedelta = datetime.now() - start_time
     print("ShowtimeRL Bot reconnected " + datetime.ctime(datetime.now()) + '. ShowtimeRL Bot has been up for ' + str(timedelta(seconds=uptimedelta.seconds)))
+    #sys.stdout = open('log.txt', 'w')
 
 @client.event
 async def on_connect():
@@ -377,30 +382,62 @@ async def on_ready():
         
         for i in upcomingmatches:
             matchname.append(data[i-1])
-            matchdate.append(data[i])
-            matchtime.append(data[i+1])
+            matchdate.append(str(data[i]).replace('Date: ', ''))
+            matchtime.append(str(data[i+1]).replace('Time: ', ''))
 
         if len(upcomingmatches) != 0:
-            NumofMatches = len(upcomingmatches)
-            TotalPages = 0
-            while NumofMatches >= 0:
-                try:
-                    NumofMatches -=10
-                    TotalPages +=1
-                except:
-                    pass
-
-                embs = []
-                emb = discord.Embed(
-                    color= discord.colour.Color.random()
-                )
-                emb.add_field(name='| **Teams**', value=listToStringNewline(matchname), inline=True)
-                emb.add_field(name='| **Date**', value=listToStringNewline(matchdate), inline=True)
-                emb.add_field(name='| **Time**', value=listToStringNewline(matchtime), inline=True)
+            emb = discord.Embed(
+                color= discord.colour.Color.random()
+            )
+            emb.add_field(name='| **Teams**', value=listToStringNewline(matchname), inline=True)
+            emb.add_field(name='| **Date**', value=listToStringNewline(matchdate), inline=True)
+            emb.add_field(name='| **Time**', value=listToStringNewline(matchtime), inline=True)
             
             channel = client.get_channel(int(get_channel(5)))
             
+            #view = MatchInfoView(upcomingmatches)
+            
             await channel.send('<@&986715160880242799>\nThe Matches for the next 7 days are: ', embed=emb)
+            
+            
+            index4 = 0
+            for i in upcomingmatches:
+                
+                team1, team2 = str(data[i-1]).split(' VS. ')
+                with open('Teams.txt', 'r') as file:
+                    data2 = file.readlines()
+                file.close()
+                
+                index3 = 0
+                for line in data2:
+                    if line.startswith(f'Team Name: {team1}'):
+                        team1Cap = str(data2[index3-2]).replace('Captain: ', '')
+                        team1Players = str(data2[index3+1]).replace('Team Players: ', '')
+                        team1Subs = str(data2[index3+2]).replace('Team Subs: ', '')
+                        team1Rank = data2[index3+3].replace('Average Team Rank: ', '')
+                    if line.startswith(f'Team Name: {team2}'):
+                        team2Cap = data2[index3-2].replace('Captain: ', '')
+                        team2Players = data2[index3+1].replace('Team Players: ', '')
+                        team2Subs = data2[index3+2].replace('Team Subs: ', '')
+                        team2Rank = data2[index3+3].replace('Average Team Rank: ', '')
+                    index3 +=1
+                
+                MatchInfo = discord.Embed(
+                    color = discord.colour.Color.random()
+                )
+                MatchInfo.add_field(name='**Team 1 Name**', value=team1, inline=True).add_field(name='**Team 2 Name**', value=team2, inline=True).add_field(name='\u200b', value='\u200b')
+                MatchInfo.add_field(name='**Team 1 Captain**', value=team1Cap, inline=True).add_field(name='**Team 2 Captain**', value=team2Cap, inline=True).add_field(name='\u200b', value='\u200b')
+                MatchInfo.add_field(name='**Team 1 Players**', value=team1Players, inline=True).add_field(name='**Team 2 Players**', value=team2Players, inline=True).add_field(name='\u200b', value='\u200b')
+                MatchInfo.add_field(name='**Team 1 Subs**', value=team1Subs, inline=True).add_field(name='**Team 2 Subs**', value=team2Subs, inline=True).add_field(name='\u200b', value='\u200b')
+                MatchInfo.add_field(name='**Team 1 Rank**', value=team1Rank, inline=True).add_field(name='**Team 2 Rank**', value=team2Rank, inline=True).add_field(name='\u200b', value='\u200b')
+                MatchInfo.add_field(name='**Date**', value=matchdate[index4], inline=True).add_field(name='**Time**', value=matchtime[index4], inline=True).add_field(name='\u200b', value='\u200b')
+
+                await channel.send('', embed=MatchInfo)
+                index4 += 1
+
+
+                
+                
         else:
             channel = client.get_channel(int(get_channel(5)))
             await channel.send('<@&986715160880242799>\nNo Matches in the next 7 days.')
@@ -470,8 +507,12 @@ async def on_ready():
         file.close()
 
     # Start your loop.
-    todays_matchs.start()
+    #todays_matchs.start()
     live_notifs_loop.start()
+
+# class MatchInfoView():
+#     print('a')
+    
 
 class ModMailModal(ui.Modal, title='Mod Mail'):
     Title = discord.ui.TextInput(label='Title', required=True, style=discord.TextStyle.short)
@@ -1116,8 +1157,7 @@ class TeamInfoEdit(ui.Modal, title='Edit Team Information'):
     RankInfo = discord.ui.TextInput(label="Average Team Rank", default="0", required=True)
         
     async def on_submit(self, interaction):
-        
-        await interaction.response.send_message(f"Team **{self.children[0].view.TeamName}** has been updated.", ephemeral=True)
+        await interaction.response.defer()
 
 # Attatchement Class.
 class TeamEditView(discord.ui.View):
@@ -1129,8 +1169,9 @@ class TeamEditView(discord.ui.View):
 
 # Dropdown view for teams that the author is the Captain of.
 class TeamEditView2(discord.ui.Select):
-    def __init__(self, author, Teams):
+    def __init__(self, author, Teams: list):
         self.author = author
+        self.Teams = Teams
         options = [
             discord.SelectOption(label=key)
             for key in Teams
@@ -1146,25 +1187,42 @@ class TeamEditView2(discord.ui.Select):
             data = file.readlines()
         file.close()
         
+        writtenin = str(x.children[0].view.TeamName)
+        chosen = self.Teams[self.Teams.index(self.values[0])]
         
-        index = -2
-        with open('Teams.txt', 'r') as file:
-            for line in file:
-                index +=1
-                if line == f'Team Name: {self.values[0]}\n':
-                    break
-        file.close()
-        
-        data[index] = f'Captain: {self.author}\n'
-        data[index] = f'Captain ID: {self.author.id}\n'
-        data[index+1] = f'Team Name: {x.children[0].view.TeamName}\n'
-        data[index+2] = f'Team Players: {x.children[0].view.Players}\n'
-        data[index+3] = f'Team Subs: {x.children[0].view.Subs}\n'
-        data[index+4] = f'Average Team Rank: {x.children[0].view.RankInfo}\n'
-        
-        with open(f'Teams.txt', 'w') as file:
-            file.writelines(data)
-        file.close()
+        flag = False
+        for line in data:
+            if line.startswith(f'Team Name: {x.children[0].view.TeamName}'):
+                if writtenin != chosen:
+                    flag = True
+                elif writtenin == chosen:
+                    flag = False
+                    
+        if flag == False:
+                
+            index = -2
+            with open('Teams.txt', 'r') as file:
+                for line in file:
+                    index +=1
+                    if line == f'Team Name: {self.values[0]}\n':
+                        break
+            file.close()
+            
+            data[index] = f'Captain: {self.author}\n'
+            data[index] = f'Captain ID: {self.author.id}\n'
+            data[index+1] = f'Team Name: {x.children[0].view.TeamName}\n'
+            data[index+2] = f'Team Players: {x.children[0].view.Players}\n'
+            data[index+3] = f'Team Subs: {x.children[0].view.Subs}\n'
+            data[index+4] = f'Average Team Rank: {x.children[0].view.RankInfo}\n'
+            
+            with open(f'Teams.txt', 'w') as file:
+                file.writelines(data)
+            file.close()
+            
+            await interaction.followup.send(f"Team **{x.children[0].view.TeamName}** has been updated.", ephemeral=True)
+            
+        elif flag == True:
+            await interaction.followup.send(f'A team by the name of **{x.children[0].view.TeamName}**, already exists. Please choose a different name.', ephemeral=True)
         
 # Attatchement Class.
 class MatchView(discord.ui.View):
@@ -1480,18 +1538,30 @@ async def self(interaction: discord.Interaction):
     TeamRank = x.children[0].view.RankInfo.value
     
     index = 0
-    flag = 0
-    flag2 = 0
+    flag = []
+    flag2 = []
+    flag3 = False
+    
     with open('Teams.txt', 'r') as file:
-        for line in file:
-            index +=1
-            if "Captain: "+ str(TeamCaptain) in line:
-                flag = 1
-            elif "Team Name: "+ TeamName in line:
-                flag2 = 1
+        data = file.readlines()
     file.close()
-    if flag == 1 and flag2 == 1:
-        await interaction.response.send_message(f"You are already listed as the Captain for **{TeamName}** in our database, consider /edit_team instead.", ephemeral=True)
+    
+    for line in data:
+        if line.startswith(f'Captain: {TeamCaptain}'):
+            flag.append(index)
+        if line.startswith(f'Team Name: {TeamName}'):
+            flag2.append(index)
+        index += 1
+    
+    for i in flag:
+        for j in flag2:
+            if i+2 == j:
+                flag3 = True
+    
+    if flag3 == True:
+        await interaction.followup.send(f"You are already listed as the Captain for **{TeamName}** in our database, consider /edit_team instead.", ephemeral=True)
+    elif len(flag2) > 0 and flag3 != True:
+        await interaction.followup.send(f'A team by the name of **{TeamName}**, already exists within our database, please choose a different name.', ephemeral=True)
     else:
         with open('Teams.txt', 'a') as file:
             file.writelines(f"Captain: {TeamCaptain}\nCaptain ID: {CaptainID}\nTeam Name: {TeamName}\nTeam Players: {TeamPlayers}\nTeam Subs: {TeamSubs}\nAverage Team Rank: {TeamRank}\n\n")
@@ -1684,7 +1754,6 @@ async def self(interaction: discord.Interaction):
 @tree.command(name='list_matches', guild=GUILD_ID, description="Lists all upcoming matches and their times.")
 async def self(interaction: discord.Interaction):
     today = datetime.today().strftime('%Y-%m-%d')
-    print(today)
     
     with open('Matches.txt', 'r') as file:
         data = file.readlines()
@@ -1705,10 +1774,6 @@ async def self(interaction: discord.Interaction):
             data[index+1] = data[index+1].replace('Time: ', '')
             Times.append(data[index+1].replace('\n', ''))
         index +=1
-            
-    # print(Matches)
-    # print(Dates)
-    # print(Times)
 
     NumofMatches = len(Matches)
     TotalPages = 0
@@ -1737,21 +1802,89 @@ async def self(interaction: discord.Interaction):
     
     await interaction.response.send_message(embeds=embs, view=view)
     
+@tree.command(name='team_info', guild=GUILD_ID, description='Returns information on the requested team.')
+async def self(interaction: discord.Interaction, team_name: str):
+    with open('Teams.txt', 'r') as file:
+        data = file.readlines()
+    file.close()
     
     
-    
-    #await interaction.response.send_message('debug mode', ephemeral=True)
+    flag = False
+    index = 0
+    for line in data:
+        if line.startswith(f'Team Name: {team_name}'):
+            flag = True
+            break
+        index += 1
+        
+    if flag == True:
+        teamCap = str(data[index-2]).replace('Captain: ', '')
+        teamPlayers = str(data[index+1]).replace('Team Players: ', '')
+        teamSubs = str(data[index+2]).replace('Team Subs: ', '')
+        teamRank = data[index+3].replace('Average Team Rank: ', '')
 
-    # This one is similar to the confirmation button except sets the inner value to `False`
-    
-    # @discord.ui.button(label='💬', style=discord.ButtonStyle.blurple)
-    # async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
-    #     x = ModMailModal()
-    #     await interaction.response.send_modal(x)
-    #     await TeamModal.wait(x)
-    #     self.value = "💬"
-    #     self.stop()
+                    
+        TeamInfo = discord.Embed(
+            color = discord.colour.Color.random()
+        )
+        TeamInfo.add_field(name='**Team Name**', value=team_name, inline=True)
+        TeamInfo.add_field(name='**Team Captain**', value=teamCap, inline=True).add_field(name='\u200b', value='\u200b')
+        TeamInfo.add_field(name='**Team Players**', value=teamPlayers, inline=True)
+        TeamInfo.add_field(name='**Team Subs**', value=teamSubs, inline=True).add_field(name='\u200b', value='\u200b')
+        TeamInfo.add_field(name='**Team Rank**', value=teamRank, inline=True)
 
+        await interaction.response.send_message(embed=TeamInfo)
+    else:
+        await interaction.response.send_message('No team found by that name. Please ensure you typed it correctly.', ephemeral=True)
+
+@tree.command(name='match_info', guild=GUILD_ID, description='Returns information about the requested match.')
+async def self(interaction: discord.Interaction, match_name: str):
+    with open('Matches.txt', 'r') as file:
+        data = file.readlines()
+    file.close()
+    
+    flag = False
+    index = 0
+    for line in data:
+        if line.startswith(f'{match_name}'):
+            flag = True
+            break
+        index += 1
+    if flag == True:
+        team1, team2 = str(data[index]).split(' VS. ')
+        with open('Teams.txt', 'r') as file:
+            data2 = file.readlines()
+        file.close()
+        
+        index3 = 0
+        for line in data2:
+            if line.startswith(f'Team Name: {team1}'):
+                team1Cap = str(data2[index3-2]).replace('Captain: ', '')
+                team1Players = str(data2[index3+1]).replace('Team Players: ', '')
+                team1Subs = str(data2[index3+2]).replace('Team Subs: ', '')
+                team1Rank = data2[index3+3].replace('Average Team Rank: ', '')
+            if line.startswith(f'Team Name: {team2}'):
+                team2Cap = data2[index3-2].replace('Captain: ', '')
+                team2Players = data2[index3+1].replace('Team Players: ', '')
+                team2Subs = data2[index3+2].replace('Team Subs: ', '')
+                team2Rank = data2[index3+3].replace('Average Team Rank: ', '')
+            index3 +=1
+        
+        MatchInfo = discord.Embed(
+            color = discord.colour.Color.random()
+        )
+        MatchInfo.add_field(name='**Team 1 Name**', value=team1, inline=True).add_field(name='**Team 2 Name**', value=team2, inline=True).add_field(name='\u200b', value='\u200b')
+        MatchInfo.add_field(name='**Team 1 Captain**', value=team1Cap, inline=True).add_field(name='**Team 2 Captain**', value=team2Cap, inline=True).add_field(name='\u200b', value='\u200b')
+        MatchInfo.add_field(name='**Team 1 Players**', value=team1Players, inline=True).add_field(name='**Team 2 Players**', value=team2Players, inline=True).add_field(name='\u200b', value='\u200b')
+        MatchInfo.add_field(name='**Team 1 Subs**', value=team1Subs, inline=True).add_field(name='**Team 2 Subs**', value=team2Subs, inline=True).add_field(name='\u200b', value='\u200b')
+        MatchInfo.add_field(name='**Team 1 Rank**', value=team1Rank, inline=True).add_field(name='**Team 2 Rank**', value=team2Rank, inline=True).add_field(name='\u200b', value='\u200b')
+        MatchInfo.add_field(name='**Date**', value=data[index+1], inline=True).add_field(name='**Time**', value=data[index+2], inline=True).add_field(name='\u200b', value='\u200b')
+
+        await interaction.response.send_message(embed=MatchInfo)
+    
+    if flag == False:
+        await interaction.response.send_message('No match found by that name. Please ensure you typed it correctly.', ephemeral=True)
+    
     
 # def getJson(username):
 #   key = '8f8782a3-53e3-4174-bdf6-9d4329ce0f72' # Your key goes here, this is mine
