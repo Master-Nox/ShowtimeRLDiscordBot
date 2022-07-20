@@ -6,6 +6,7 @@ from gettext import find
 import json
 import string
 from xml.etree.ElementTree import tostring
+from pandas import describe_option
 import requests
 from lib2to3.pytree import convert
 from msilib.schema import File, TextStyle
@@ -432,6 +433,9 @@ async def on_ready():
                 MatchInfo.add_field(name='**Team 1 Rank**', value=team1Rank, inline=True).add_field(name='**Team 2 Rank**', value=team2Rank, inline=True).add_field(name='\u200b', value='\u200b')
                 MatchInfo.add_field(name='**Date**', value=matchdate[index4], inline=True).add_field(name='**Time**', value=matchtime[index4], inline=True).add_field(name='\u200b', value='\u200b')
 
+                # Will need to attatch a view to the message for the producers to sign up for matches. 
+                # Will also need to create another loop for reminders about said matches. Will likely require a file to track the producers OR have them added to Matches.txt
+                
                 await channel.send('', embed=MatchInfo)
                 index4 += 1
 
@@ -507,7 +511,7 @@ async def on_ready():
         file.close()
 
     # Start your loop.
-    #todays_matchs.start()
+    todays_matchs.start()
     live_notifs_loop.start()
 
 # class MatchInfoView():
@@ -581,6 +585,7 @@ async def on_message(message):
 
 # This command lets you add a twitter account to the notification list.
 @tree.command(name="twitter_add", description=f'Adds a Twitter to the live notifs.', guild= GUILD_ID)
+@app_commands.describe(twitter_name='Name of the twitter you want to add to the system.')
 async def self(interaction: discord.Interaction, twitter_name: str):
     id = int(get_channel(0))
     channel = client.get_channel(id)
@@ -598,6 +603,7 @@ async def self(interaction: discord.Interaction, twitter_name: str):
 
 # This command lets you remove a twitter account from the notification list.
 @tree.command(name="twitter_delete", description=f'Removes a Twitter from the live notifs.', guild= GUILD_ID)
+@app_commands.describe(twitter_name='Name of the twitter you want to remove from the system.')
 async def self(interaction: discord.Interaction, twitter_name: str):
     channel = client.get_channel(int(get_channel(1)))
     channel2 = client.get_channel(int(get_channel(0)))
@@ -636,6 +642,7 @@ async def self(interaction: discord.Interaction):
 
 # This command lets you add a streamer to the notification list.
 @tree.command(name="stream_add", description=f'Adds a Twitch to the live notifs.', guild= GUILD_ID)
+@app_commands.describe(twitch_name='Name of the streamer you want to add to the system.')
 async def self(interaction: discord.Interaction, twitch_name: str):
     id = int(get_channel(0))
     channel = client.get_channel(id)
@@ -653,6 +660,7 @@ async def self(interaction: discord.Interaction, twitch_name: str):
 
 # This command lets you remove a streamer from the notification list.
 @tree.command(name="stream_delete", description=f'Removes a Twitch from the live notifs.', guild= GUILD_ID)
+@app_commands.describe(twitch_name='Name of the streamer you want to remove from the system.')
 async def self(interaction: discord.Interaction, twitch_name: str):
     channel = client.get_channel(int(get_channel(2)))
     channel2 = client.get_channel(int(get_channel(0)))
@@ -985,6 +993,7 @@ class AnnounceDropdownExtendedView(discord.ui.View):
 
 # Lets the user say things through the bot in a specified channel.
 @tree.command(name="say", description=f'Sends a message to the specified channel as the bot.', guild= GUILD_ID)
+@app_commands.describe(message='The message you want the bot to send.')
 async def self(interaction: discord.Interaction, message: str):
     view= AnnounceDropdownView(message)
         
@@ -1278,7 +1287,7 @@ class MatchView2(discord.ui.Select):
         
         view = OpponentMatchView(self.author, self.author_teams, Teams, self.date, self.time)
         
-        await interaction.response.send_message(f"Choose an opponent.", view= view, ephemeral=True)
+        await interaction.response.send_message(f"Choose which team you want to play against.", view= view, ephemeral=True)
 
 class OpponentMatchView(discord.ui.View):
     def __init__(self, author, author_teams, enemy_teams, date, time):
@@ -1452,6 +1461,7 @@ class DeleteTeamView2(discord.ui.Select):
             await self.TeamCaptain.send(f"Deletion cancelled.")
         
 @tree.command(name="match_request", description="Sets up a match within the showmatch system. Date Format: YYYY-MM-DD. Time Format: HH:MM CST.", guild= GUILD_ID)
+@app_commands.describe(enemy_captain = "@ of the enemy team's captain.", date = "YYYY-MM-DD", time = "HH:MM in CST." )
 async def self(interaction: discord.Interaction, enemy_captain: discord.user.User, date: str, time: str):
     author = interaction.user
     EndEarly = False
@@ -1493,7 +1503,7 @@ async def self(interaction: discord.Interaction, enemy_captain: discord.user.Use
         elif flag == 1:
             await interaction.response.send_message("Please select your team.", view = view, ephemeral=True)
      
-@tree.command(name="edit_team", guild= GUILD_ID)
+@tree.command(name="edit_team", guild= GUILD_ID, description="Lets you edit one of your team's information.")
 async def self(interaction:discord.Interaction):
     author = interaction.user
     authorid = author.id
@@ -1524,7 +1534,7 @@ async def self(interaction:discord.Interaction):
         view = TeamEditView(author=author, Teams=Teams)
         await interaction.response.send_message("Please select the team you'd lke to edit.", view = view, ephemeral=True)
           
-@tree.command(name="create_team", guild= GUILD_ID)
+@tree.command(name="create_team", guild= GUILD_ID, description="Opens a form and saves that newly created team to the database.")
 async def self(interaction: discord.Interaction):
     TeamCaptain = interaction.user
     CaptainID = TeamCaptain.id
@@ -1568,7 +1578,7 @@ async def self(interaction: discord.Interaction):
         file.close()
         await interaction.followup.send(f"Info for **{TeamName}** has been recorded.", ephemeral=True)
     
-@tree.command(name='delete_team', guild= GUILD_ID)
+@tree.command(name='delete_team', guild= GUILD_ID, description="Used to delete a team that you own.")
 async def self(interaction: discord.Interaction):
     TeamCaptain = interaction.user
     CaptainID = TeamCaptain.id
@@ -1694,7 +1704,7 @@ class StaticPaginator(Paginator):
 
         super().__init__(callback, pages, **kwargs)
             
-@tree.command(name='list_teams', guild= GUILD_ID)
+@tree.command(name='list_teams', guild= GUILD_ID, description="Lists all teams within the database.")
 async def self(interaction: discord.Interaction):
     TeamNames = []
     Captains = []
@@ -1803,6 +1813,7 @@ async def self(interaction: discord.Interaction):
     await interaction.response.send_message(embeds=embs, view=view)
     
 @tree.command(name='team_info', guild=GUILD_ID, description='Returns information on the requested team.')
+@app_commands.describe(team_name='Name of the team you wish to get info for.')
 async def self(interaction: discord.Interaction, team_name: str):
     with open('Teams.txt', 'r') as file:
         data = file.readlines()
@@ -1838,6 +1849,7 @@ async def self(interaction: discord.Interaction, team_name: str):
         await interaction.response.send_message('No team found by that name. Please ensure you typed it correctly.', ephemeral=True)
 
 @tree.command(name='match_info', guild=GUILD_ID, description='Returns information about the requested match.')
+@app_commands.describe(match_name='Name of the match you wish to get info for. "Team 1 VS. Team 2"')
 async def self(interaction: discord.Interaction, match_name: str):
     with open('Matches.txt', 'r') as file:
         data = file.readlines()
