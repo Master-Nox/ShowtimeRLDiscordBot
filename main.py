@@ -148,11 +148,11 @@ async def on_connect():
     print('ShowtimeRL Bot was connected starting at ' + datetime.ctime(datetime.now()))
 
 def date_check(input):
-    pattern = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", re.IGNORECASE)
+    pattern = re.compile(r"20[0-9]{2}-(0[0-9]|1[0-2])-(0[0-9]|1[0-9]|2[0-9]|3[0-1])", re.IGNORECASE)
     return pattern.match(input)
 
 def time_check(input):
-    pattern = re.compile(r"[0-9]+(:)?[0-9]+", re.IGNORECASE)
+    pattern = re.compile(r"([01]?[0-9]|2[0-3]):[0-5][0-9]", re.IGNORECASE)
     return pattern.match(input)
 
 # Logs exception to .txt file.
@@ -1107,7 +1107,7 @@ class TeamModal(ui.Modal, title='Team Information'):
 
 class ConfirmDeny(discord.ui.View):
     def __init__(self):
-        super().__init__()
+        super().__init__(timeout=10800)
         self.value = None
 
     # When the confirm button is pressed, set the inner value to `True` and
@@ -1125,10 +1125,15 @@ class ConfirmDeny(discord.ui.View):
         await interaction.response.send_message("You've denied the match!")
         self.value = "❌"
         self.stop()
+        
+    async def on_timeout(self, interaction: discord.Interaction):
+        await interaction.response.send_message("This request has timed out.")
+        self.value = "Timeout"
+        self.stop()
 
 class ConfirmDenyDeletion(discord.ui.View):
     def __init__(self):
-        super().__init__()
+        super().__init__(timeout=10800)
         self.value = None
 
     # When the confirm button is pressed, set the inner value to `True` and
@@ -1145,6 +1150,11 @@ class ConfirmDenyDeletion(discord.ui.View):
     async def deny(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer()
         self.value = "❌"
+        self.stop()
+
+    async def on_timeout(self, interaction: discord.Interaction):
+        await interaction.response.defer()
+        self.value = "Timeout"
         self.stop()
 
 # Modal to gather team information.
@@ -1397,9 +1407,12 @@ class OpponentMatchView2(discord.ui.Select):
             'Time': self.time}
             session = requests.Session()
             session.post('https://eor82olfyhrllj.m.pipedream.net',data=payload)
+        
+        elif view.children[0].view.deny.view.value == "❌":
+            await Author.send(f"Your opponent {Captain} has denied the match!")
             
         else:
-            await Author.send(f"Your opponent {Captain} has denied the match!")
+            await Author.send(f"Your opponent {Captain} did not respond to the request.")
                 
 class DeleteTeamView(discord.ui.View):
     def __init__(self, TeamCaptain, Teams):
@@ -1476,7 +1489,7 @@ async def self(interaction: discord.Interaction, enemy_captain: discord.user.Use
     if time_check(time) == None and EndEarly == False:
         await interaction.response.send_message('Your time was entered incorrectly. Please use the format HH:MM.', ephemeral=True)
         print(f'{author} entered the time incorrectly when using /match_request.')
-        EndEarly == True
+        EndEarly = True
         
     if EndEarly != True:
         Teams = []
@@ -1503,6 +1516,137 @@ async def self(interaction: discord.Interaction, enemy_captain: discord.user.Use
         elif flag == 1:
             await interaction.response.send_message("Please select your team.", view = view, ephemeral=True)
      
+     
+class MultiMatchSelectView(discord.ui.View):
+    def __init__(self, Matches, data, author, EnemyCap, Options):
+        super().__init__()
+
+        # Adds the dropdown to our view object.
+        self.add_item(MultiMatchSelectView2(Matches, data, author, EnemyCap, Options))
+     
+class MultiMatchSelectView2(discord.ui.Select):
+    def __init__(self, Matches, data, author, EnemyCap, Options):
+        self.data = data
+        self.author = author
+        self.EnemyCap = EnemyCap
+        self.Matches = Matches
+        options = [
+            discord.SelectOption(label=key)
+            for key in Options
+        ]
+        super().__init__(placeholder='Choose a match.', min_values=1, max_values=1, options=options)
+    async def callback(self, interaction: discord.Interaction):
+        view = ConfirmDenyDeletion()
+        await interaction.response.send_message('Match found, are you sure you want to cancel this match?', ephemeral=True, view = view)
+        await ConfirmDenyDeletion.wait(view)
+        
+        if view.children[0].view.confirm.view.value == "✔️":
+            await interaction.followup.send("Confirmed. Removing match and notifying opposing team.", ephemeral=True)
+            
+            await self.EnemyCap.send(f'{self.author} has cancelled the match **{self.values[0]}**.')
+            self.data[self.Matches[0]] = ''
+            self.data[self.Matches[0]+1] = ''
+            self.data[self.Matches[0]+2] = ''
+            self.data[self.Matches[0]+3] = ''
+            
+            with open('Matches.txt', 'w') as file:
+                file.writelines(self.data)
+            file.close()
+        else:
+            await interaction.followup.send('Denied, the match has not been modified.', ephemeral=True)
+        
+@tree.command(name='cancel_match', guild=GUILD_ID, description="Cancel a match.")
+@app_commands.describe(match_name = 'Name of the match you wish to cancel. "Team 1 VS. Team 2"')
+async def self(interaction: discord.Interaction, match_name: str):
+    author = interaction.user
+    
+    match_name = match_name.rstrip()
+    
+    with open('Matches.txt', 'r') as file:
+        data = file.readlines()
+    file.close()
+    
+    MatchExists = False
+    MatchingMatches = []
+    
+    index = 0
+    for line in data:
+        if line.startswith(f'{match_name}'):
+            MatchExists = True
+            MatchingMatches.append(index)
+        index += 1
+    
+    
+    team1, team2 = match_name.split(' VS. ')
+        
+    with open('Teams.txt', 'r') as file:
+        data2 = file.readlines()
+    file.close()
+    
+    index2 = 0
+    for line in data2:
+        if line.startswith(f'Team Name: {team1}'):
+            team1cap = data2[index2-2].replace('Captain: ', '')
+            team1cap = team1cap.rstrip()
+        if line.startswith(f'Team Name: {team2}'):
+            team2cap = data2[index2-2].replace('Captain: ', '')
+            team2cap = team2cap.rstrip()
+        index2 += 1
+    
+    
+    TheyAreInMatch = False
+    if team1cap == str(author):
+        TheyAreInMatch = True
+        EnemyCap = interaction.guild.get_member_named(team2cap)
+    if team2cap == str(author):
+        TheyAreInMatch = True
+        EnemyCap = interaction.guild.get_member_named(team1cap)  
+    
+    if MatchExists == False:
+        await interaction.response.send_message('No match found under that name, please ensure you type the match name correctly.', ephemeral=True)
+    elif MatchExists == True and len(MatchingMatches) > 1:
+        if TheyAreInMatch == True:
+            # Needs a select view.
+            Options = []
+            OptionsIndex = 1
+            for i in MatchingMatches:
+                Name = data[i].rstrip()
+                Date = data[i+1].rstrip()
+                Time = data[i+2].rstrip()
+                Options.append(f'{OptionsIndex}: {Name} {Date} {Time}')
+                OptionsIndex += 1
+            
+            view = MultiMatchSelectView(MatchingMatches, data, author, EnemyCap, Options)
+            await interaction.response.send_message('Multiple matches found under that name, please choose one.', ephemeral=True, view = view)
+            
+        else:
+            await interaction.response.send_message('You are not listed as the captain for either team in this match.', ephemeral=True)
+        
+    elif MatchExists == True and len(MatchingMatches) == 1:
+        if TheyAreInMatch == True:
+            view = ConfirmDenyDeletion()
+            await interaction.response.send_message('Match found, are you sure you want to cancel this match?', ephemeral=True, view = view)
+            await ConfirmDenyDeletion.wait(view)
+            
+            if view.children[0].view.confirm.view.value == "✔️":
+                await interaction.followup.send("Confirmed. Removing match and notifying opposing team.", ephemeral=True)
+                
+                await EnemyCap.send(f'{author} has cancelled the match **{match_name}**.')
+                data[MatchingMatches[0]] = ''
+                data[MatchingMatches[0]+1] = ''
+                data[MatchingMatches[0]+2] = ''
+                data[MatchingMatches[0]+3] = ''
+                
+                with open('Matches.txt', 'w') as file:
+                    file.writelines(data)
+                file.close()
+                
+            else:
+                await interaction.followup.send('Denied, the match has not been modified.', ephemeral=True)  
+        else:
+            await interaction.response.send_message('You are not listed as the captain for either team in this match.', ephemeral=True)
+            
+        
 @tree.command(name="edit_team", guild= GUILD_ID, description="Lets you edit one of your team's information.")
 async def self(interaction:discord.Interaction):
     author = interaction.user
