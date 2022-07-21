@@ -140,7 +140,7 @@ async def on_disconnect():
 @client.event
 async def on_resumed():
     uptimedelta = datetime.now() - start_time
-    print("ShowtimeRL Bot reconnected " + datetime.ctime(datetime.now()) + '. ShowtimeRL Bot has been up for ' + str(timedelta(seconds=uptimedelta.seconds)))
+    print("ShowtimeRL Bot reconnected at  " + datetime.ctime(datetime.now()) + '. ShowtimeRL Bot has been up for ' + str(timedelta(seconds=uptimedelta.seconds)))
     #sys.stdout = open('log.txt', 'w')
 
 @client.event
