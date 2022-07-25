@@ -1,32 +1,5 @@
-1 VS. 3
-Date: 2022-08-02
-Time: 10:00
-
-Test Team to fill out f VS. 5
-Date: 2022-07-27
-Time: 10:30
-
-2 VS. 1
-Date: 2022-07-21
-Time: 9:05
-
-1 VS. 2
-Date: 2022-07-21
-Time: 8:00
-
-1 VS. 1
-Date: 2022-08-01
+The First Team VS. The First Team
+Date: 2022-07-25
 Time: 12:00
-
-2 VS. 2
-Date: 2022-07-22
-Time: 9:00
-
-1 VS. 2
-Date: 2022-07-22
-Time: 23:27
-
-1 VS. 3
-Date: 2022-12-40
-Time: 5:00
+Producers: 
 

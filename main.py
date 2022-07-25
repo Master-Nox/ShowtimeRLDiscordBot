@@ -117,7 +117,7 @@ headers = {
     'Authorization': 'Bearer ' + keys['access_token']
 }
 
-GUILD_ID = guild= discord.Object(id= 980108559226380318)
+GUILD_ID = guild= discord.Object(id= 979262254958657576)
 
 # Twitter auth
 twitclient = tweepy.Client(bearer_token=os.getenv('twit_bearer_token'),
@@ -247,6 +247,9 @@ async def on_ready():
     
     @tasks.loop(hours=24)
     async def todays_matchs():
+        
+        # Eventually place an if statement here that checks if its between certain hours.
+                
         today = datetime.today().strftime("%Y-%m-%d")
         year, month, day = today.rsplit('-')
         
@@ -312,11 +315,9 @@ async def on_ready():
                 MatchMonth = int(MatchMonth)
                 MatchDay = int(MatchDay)
                 
-                if day+7 > monthlength:
-                    remainingdays = day+7-monthlength
-                    
-                    print(f'Remaining Days: {remainingdays}')
-                    
+                remainingdays = day+7-monthlength
+                if remainingdays > 0:
+                                        
                     if MatchYear < year:
                         tobedeleted.append(index)
                     elif MatchYear == year and MatchMonth < month:
@@ -340,15 +341,13 @@ async def on_ready():
                         remainingdays -=1
                     
                 
-                if day+7 < monthlength:
+                if remainingdays <= 0:
                     if MatchYear < year:
                         tobedeleted.append(index)
                     elif MatchYear == year and MatchMonth < month:
                         tobedeleted.append(index)
                     elif MatchYear == year and MatchMonth == month and MatchDay < day:
                         tobedeleted.append(index)
-                    elif MatchYear == year and MatchMonth == month and MatchDay == day:
-                        upcomingmatches.append(index)
                     elif MatchYear == year and MatchMonth == month and MatchDay == day+1:
                         upcomingmatches.append(index)
                     elif MatchYear == year and MatchMonth == month and MatchDay == day+2:
@@ -371,6 +370,7 @@ async def on_ready():
             data[i] = ''
             data[i+1] = ''
             data[i+2] = ''
+            data[i+3] = ''
         
         with open('Matches.txt', 'w') as file:
             file.writelines(data)
@@ -380,12 +380,14 @@ async def on_ready():
         matchname = []
         matchdate = []
         matchtime = []
-        
+        matchproducers = []
+                
         for i in upcomingmatches:
             matchname.append(data[i-1])
             matchdate.append(str(data[i]).replace('Date: ', ''))
             matchtime.append(str(data[i+1]).replace('Time: ', ''))
-
+            matchproducers.append(str(data[i+2]).replace('Producers: ', ''))
+        
         if len(upcomingmatches) != 0:
             emb = discord.Embed(
                 color= discord.colour.Color.random()
@@ -395,9 +397,7 @@ async def on_ready():
             emb.add_field(name='| **Time**', value=listToStringNewline(matchtime), inline=True)
             
             channel = client.get_channel(int(get_channel(5)))
-            
-            #view = MatchInfoView(upcomingmatches)
-            
+                        
             await channel.send('<@&986715160880242799>\nThe Matches for the next 7 days are: ', embed=emb)
             
             
@@ -432,11 +432,18 @@ async def on_ready():
                 MatchInfo.add_field(name='**Team 1 Subs**', value=team1Subs, inline=True).add_field(name='**Team 2 Subs**', value=team2Subs, inline=True).add_field(name='\u200b', value='\u200b')
                 MatchInfo.add_field(name='**Team 1 Rank**', value=team1Rank, inline=True).add_field(name='**Team 2 Rank**', value=team2Rank, inline=True).add_field(name='\u200b', value='\u200b')
                 MatchInfo.add_field(name='**Date**', value=matchdate[index4], inline=True).add_field(name='**Time**', value=matchtime[index4], inline=True).add_field(name='\u200b', value='\u200b')
+                if matchproducers[index4] != '\n':
+                    MatchInfo.add_field(name="Producers", value=matchproducers[index4], inline=False)
+                else:
+                    MatchInfo.add_field(name="Producers", value="None", inline=False)
 
                 # Will need to attatch a view to the message for the producers to sign up for matches. 
                 # Will also need to create another loop for reminders about said matches. Will likely require a file to track the producers OR have them added to Matches.txt
                 
-                await channel.send('', embed=MatchInfo)
+                view = ProducerSignupView(i)
+
+                
+                await channel.send('', embed=MatchInfo, view=view)
                 index4 += 1
 
 
@@ -514,8 +521,137 @@ async def on_ready():
     todays_matchs.start()
     live_notifs_loop.start()
 
-# class MatchInfoView():
-#     print('a')
+class ProducerSignupView(discord.ui.View):
+    def __init__(self, matchindex):
+        self.matchindex = matchindex
+        super().__init__(timeout=86400)
+        self.value = None
+
+    # When the confirm button is pressed, set the inner value to `True` and
+    # stop the View from listening to more input.
+    # We also send the user an ephemeral message that we're confirming their choice.
+    @discord.ui.button(label='Sign Up', style=discord.ButtonStyle.green, custom_id='STRL:ProdYes')
+    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+        
+        with open('Matches.txt', 'r') as file:
+            data = file.readlines()
+        file.close()
+        
+        if data[self.matchindex+2].find(str(interaction.user)) == -1:
+        
+            data[self.matchindex+2] = str(data[self.matchindex+2]).rstrip() +str(f' {interaction.user}\n')
+            
+            with open('Matches.txt', 'w') as file:
+                file.writelines(data)
+            file.close()
+                    
+            team1, team2 = str(data[self.matchindex-1]).split(' VS. ')
+            with open('Teams.txt', 'r') as file:
+                data2 = file.readlines()
+            file.close()
+            
+            index3 = 0
+            for line in data2:
+                if line.startswith(f'Team Name: {team1}'):
+                    team1Cap = str(data2[index3-2]).replace('Captain: ', '')
+                    team1Players = str(data2[index3+1]).replace('Team Players: ', '')
+                    team1Subs = str(data2[index3+2]).replace('Team Subs: ', '')
+                    team1Rank = data2[index3+3].replace('Average Team Rank: ', '')
+                if line.startswith(f'Team Name: {team2}'):
+                    team2Cap = data2[index3-2].replace('Captain: ', '')
+                    team2Players = data2[index3+1].replace('Team Players: ', '')
+                    team2Subs = data2[index3+2].replace('Team Subs: ', '')
+                    team2Rank = data2[index3+3].replace('Average Team Rank: ', '')
+                index3 +=1
+            
+            MatchInfo = discord.Embed(
+                color = discord.colour.Color.random()
+            )
+            MatchInfo.add_field(name='**Team 1 Name**', value=team1, inline=True).add_field(name='**Team 2 Name**', value=team2, inline=True).add_field(name='\u200b', value='\u200b')
+            MatchInfo.add_field(name='**Team 1 Captain**', value=team1Cap, inline=True).add_field(name='**Team 2 Captain**', value=team2Cap, inline=True).add_field(name='\u200b', value='\u200b')
+            MatchInfo.add_field(name='**Team 1 Players**', value=team1Players, inline=True).add_field(name='**Team 2 Players**', value=team2Players, inline=True).add_field(name='\u200b', value='\u200b')
+            MatchInfo.add_field(name='**Team 1 Subs**', value=team1Subs, inline=True).add_field(name='**Team 2 Subs**', value=team2Subs, inline=True).add_field(name='\u200b', value='\u200b')
+            MatchInfo.add_field(name='**Team 1 Rank**', value=team1Rank, inline=True).add_field(name='**Team 2 Rank**', value=team2Rank, inline=True).add_field(name='\u200b', value='\u200b')
+            MatchInfo.add_field(name='**Date**', value=data[self.matchindex].replace('Date: ', ''), inline=True).add_field(name='**Time**', value=data[self.matchindex+1].replace('Time: ', ''), inline=True).add_field(name='\u200b', value='\u200b')
+            if data[self.matchindex+2].replace('Producers: ', '') != '\n':
+                MatchInfo.add_field(name="Producers", value=data[self.matchindex+2], inline=False)
+            else:
+                MatchInfo.add_field(name="Producers", value="None", inline=False)
+
+            await interaction.response.edit_message(content='', embed=MatchInfo)
+            
+            await interaction.followup.send(f"{interaction.user.mention} you've signed up for the match.", ephemeral=True)
+            
+        else:
+            await interaction.response.send_message(f'{interaction.user.mention} you are already signed up for this match.', ephemeral=True)
+            
+        self.value = "✔️"
+        #self.stop()
+
+    # This one is similar to the confirmation button except sets the inner value to `False`
+    @discord.ui.button(label='Quit', style=discord.ButtonStyle.red, custom_id='STRL:ProdNo')
+    async def deny(self, interaction: discord.Interaction, button: discord.ui.Button):
+        
+        
+        with open('Matches.txt', 'r') as file:
+            data = file.readlines()
+        file.close()
+        
+        if data[self.matchindex+2].find(str(interaction.user)) != -1:
+            data[self.matchindex+2]= data[self.matchindex+2].replace(f' {str(interaction.user)}', ' ')
+            
+            with open('Matches.txt', 'w') as file:
+                file.writelines(data)
+            file.close()
+            
+            team1, team2 = str(data[self.matchindex-1]).split(' VS. ')
+            with open('Teams.txt', 'r') as file:
+                data2 = file.readlines()
+            file.close()
+            
+            index3 = 0
+            for line in data2:
+                if line.startswith(f'Team Name: {team1}'):
+                    team1Cap = str(data2[index3-2]).replace('Captain: ', '')
+                    team1Players = str(data2[index3+1]).replace('Team Players: ', '')
+                    team1Subs = str(data2[index3+2]).replace('Team Subs: ', '')
+                    team1Rank = data2[index3+3].replace('Average Team Rank: ', '')
+                if line.startswith(f'Team Name: {team2}'):
+                    team2Cap = data2[index3-2].replace('Captain: ', '')
+                    team2Players = data2[index3+1].replace('Team Players: ', '')
+                    team2Subs = data2[index3+2].replace('Team Subs: ', '')
+                    team2Rank = data2[index3+3].replace('Average Team Rank: ', '')
+                index3 +=1
+            
+            
+            MatchInfo = discord.Embed(
+                color = discord.colour.Color.random()
+            )
+            MatchInfo.add_field(name='**Team 1 Name**', value=team1, inline=True).add_field(name='**Team 2 Name**', value=team2, inline=True).add_field(name='\u200b', value='\u200b')
+            MatchInfo.add_field(name='**Team 1 Captain**', value=team1Cap, inline=True).add_field(name='**Team 2 Captain**', value=team2Cap, inline=True).add_field(name='\u200b', value='\u200b')
+            MatchInfo.add_field(name='**Team 1 Players**', value=team1Players, inline=True).add_field(name='**Team 2 Players**', value=team2Players, inline=True).add_field(name='\u200b', value='\u200b')
+            MatchInfo.add_field(name='**Team 1 Subs**', value=team1Subs, inline=True).add_field(name='**Team 2 Subs**', value=team2Subs, inline=True).add_field(name='\u200b', value='\u200b')
+            MatchInfo.add_field(name='**Team 1 Rank**', value=team1Rank, inline=True).add_field(name='**Team 2 Rank**', value=team2Rank, inline=True).add_field(name='\u200b', value='\u200b')
+            MatchInfo.add_field(name='**Date**', value=data[self.matchindex].replace('Date: ', ''), inline=True).add_field(name='**Time**', value=data[self.matchindex+1].replace('Time: ', ''), inline=True).add_field(name='\u200b', value='\u200b')
+            if data[self.matchindex+2].replace('Producers: ', '') != '\n':
+                MatchInfo.add_field(name="Producers", value=data[self.matchindex+2], inline=False)
+            else:
+                MatchInfo.add_field(name="Producers", value="None", inline=False)
+
+            
+            await interaction.response.edit_message(content='', embed=MatchInfo)
+            
+            await interaction.followup.send(f"{interaction.user.mention} you've quit the match.", ephemeral=True)
+        else:
+            await interaction.response.send_message(f'{interaction.user.mention} you are not signed up for this match.', ephemeral=True)
+        
+        self.value = "❌"
+        #self.stop()
+        
+    async def on_timeout(self, interaction: discord.Interaction):
+        await interaction.response.defer()
+        self.value = "Timeout"
+        self.stop()
     
 
 class ModMailModal(ui.Modal, title='Mod Mail'):
@@ -1397,7 +1533,7 @@ class OpponentMatchView2(discord.ui.Select):
             Title = TeamName + " VS. " + str(self.values[0])
             
             with open(f'./Matches.txt', 'a') as file:
-                file.writelines(f'{TeamName} VS. {str(self.values[0])}\nDate: {self.date}\nTime: {self.time}\n\n')
+                file.writelines(f'{TeamName} VS. {str(self.values[0])}\nDate: {self.date}\nTime: {self.time}\nProducers: \n\n')
             file.close()
             
             
@@ -1636,6 +1772,7 @@ async def self(interaction: discord.Interaction, match_name: str):
                 data[MatchingMatches[0]+1] = ''
                 data[MatchingMatches[0]+2] = ''
                 data[MatchingMatches[0]+3] = ''
+                data[MatchingMatches[0]+4] = ''
                 
                 with open('Matches.txt', 'w') as file:
                     file.writelines(data)
