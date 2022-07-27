@@ -157,6 +157,9 @@ def time_check(input):
 
 # Logs exception to .txt file.
 def log_and_print_exception(e):
+    # Could have the bot message me any errors is encounters.
+    Nox = client.fetch_user(208383176781856768)
+    Nox.send(f'Error occurred:\n{str(e)}')
     logging_file = open("log.txt", "a")
     logging_file.write(f"{datetime.now()}\n{str(e)}\n\n")
     logging_file.close()
@@ -688,7 +691,16 @@ class DM_Help(discord.ui.View):
     # We also send the user an ephemeral message that we're confirming their choice.
     @discord.ui.button(label='❓', style=discord.ButtonStyle.gray)
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message("This will become helpful info!")
+        embed = discord.Embed(
+            color=discord.Color.random(),
+            title=f"Command List")
+        embed.add_field(name="General Commands", value='**hello** - The bot will respond back with a simple "Hello @you!"\n**help** - Sends this message.\n**ping** - Checks the latency of the bot. Responds with "Pong! **ms"', inline=False)
+        embed.add_field(name="Showmatch Commands", value="**create/edit/delete_team** - These three commands are used to manage your team within the Showmatch system.\n**match_request** - This commands lets you set up a match against another team within the Showmatch system.\n**cancel_match** - This command lets you cancel a match that you have already created.", inline=False)
+        embed.add_field(name='Information Commands', value="**team/match_info** - These commands allows you to look up a corresponding match or team and see their corresponding information.\n**list_teams/matches** - These commands let you see all teams and matches currently listed within the showmatch system.", inline=False)
+        embed.timestamp = datetime.now()
+        
+        await interaction.response.send_message(embed=embed)
+        
         self.value = "❓"
         self.stop()
 
@@ -773,7 +785,7 @@ async def self(interaction: discord.Interaction, twitter_name: str):
 async def self(interaction: discord.Interaction):
      with open('tweeters.txt', 'r') as file:
          tweeters = file.read()
-         await interaction.response.send_message(f'The currently tracked streams include: {tweeters}')
+         await interaction.response.send_message(f'The currently tracked twitters include: {tweeters}')
          file.close()
 
 # This command lets you add a streamer to the notification list.
@@ -1145,11 +1157,9 @@ async def self(interaction: discord.Interaction):
             color=discord.Color.random(),
             title=f"Command List")
     #embed.add_field(name="announce", value="Lets you")
-    embed.add_field(name="hello", value='The bot will respond back with a simple "Hello @you!"', inline=False)
-    embed.add_field(name="help", value="Sends this message.", inline = False)
-    embed.add_field(name="ping", value='Checks the latency of the bot. Responds with "Pong! **ms"', inline=False)
-    #embed.add_field(name="", value="")
-
+    embed.add_field(name="General Commands", value='**hello** - The bot will respond back with a simple "Hello @you!"\n**help** - Sends this message.\n**ping** - Checks the latency of the bot. Responds with "Pong! **ms"', inline=False)
+    embed.add_field(name="Showmatch Commands", value="**create/edit/delete_team** - These three commands are used to manage your team within the Showmatch system.\n**match_request** - This commands lets you set up a match against another team within the Showmatch system.\n**cancel_match** - This command lets you cancel a match that you have already created.", inline=False)
+    embed.add_field(name='Information Commands', value="**team/match_info** - These commands allows you to look up a corresponding match or team and see their corresponding information.\n**list_teams/matches** - These commands let you see all teams and matches currently listed within the showmatch system.", inline=False)
     embed.timestamp = datetime.now()
     await user.send(embed=embed)
     
