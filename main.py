@@ -702,8 +702,7 @@ class DM_Help(discord.ui.View):
         await interaction.response.send_message(embed=embed)
         
         self.value = "❓"
-        self.stop()
-
+        
     # This one is similar to the confirmation button except sets the inner value to `False`
     @discord.ui.button(label='💬', style=discord.ButtonStyle.blurple)
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -711,7 +710,6 @@ class DM_Help(discord.ui.View):
         await interaction.response.send_modal(x)
         await TeamModal.wait(x)
         self.value = "💬"
-        self.stop()
 
 # This bit of code has the bot respond to DMs automatically, should be turned into a helpful message eventually.
 @client.event
